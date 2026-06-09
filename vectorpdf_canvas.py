@@ -2,7 +2,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import textwrap
 
-def create_vector_pdf(output_path = 'sample_files/vector.pdf'):
+def create_canvas_pdf(output_path = 'sample_files/vector.pdf'):
     c = canvas.Canvas(output_path, pagesize = A4)
 
     c.setFont("Helvetica-Bold", 22)
@@ -44,9 +44,5 @@ of humanity becomes increasingly important and complex."""
     c.drawText(text)
     c.save()
     print(f"created Pdf:", {output_path})
-create_vector_pdf()
-
-# %%
-
-
+create_canvas_pdf()
 

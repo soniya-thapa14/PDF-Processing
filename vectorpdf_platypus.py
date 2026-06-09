@@ -4,7 +4,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import cm
 
-def create_vector_pdf(output_path ="sample_files/Doc.pdf"):
+def create_platypus_pdf(output_path ="sample_files/Doc.pdf"):
     doc = SimpleDocTemplate(output_path, pagesize = A4, leftMargin = 2*cm,rightMargin = 2*cm, topMargin = 2*cm, bottomMargin = 2*cm)
     style = getSampleStyleSheet()
     story =[]
@@ -42,6 +42,6 @@ of humanity becomes increasingly important and complex."""
         story.append(Paragraph(p, style["Normal"]))
     doc.build(story)
     print(f"Created: {output_path}")
-create_vector_pdf()
+create_platypus_pdf()
 
 
