@@ -1,0 +1,16 @@
+# Private answer key — never pushed to the intern's repo.
+solutions/
+
+# Generated tutorial artifacts — regenerate by running the scripts.
+__pycache__/
+.DS_Store
+
+# Tutorial 1 / 2 single-page sample + its rendered Markdown
+tables_doc.pdf
+tables_doc.md
+
+# Multi-page samples (sample_pdfs/) + any Markdown rendered from them
+report_multipage.pdf
+report_multipage.md
+ledger_spanning_table.pdf
+ledger_spanning_table.md
