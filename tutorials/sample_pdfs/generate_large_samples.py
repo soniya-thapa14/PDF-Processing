@@ -79,7 +79,7 @@ def generate_ledger(output_path=LEDGER_PDF, n_rows=440):
     
     rows =[header]
     balance = 50000.00
-    start = date(2026, 1, 1)
+    start = date(2025, 1, 1)
 
     for i in range(n_rows):
         d = start + timedelta(days = i)
@@ -99,7 +99,7 @@ def generate_ledger(output_path=LEDGER_PDF, n_rows=440):
     def _draw_header_footer(canvas, doc):
         canvas.saveState()
         canvas.setFont("Helvetica", 8)
-        canvas.drawString(2*cm, A4[1] - 1.5*cm,  "Ledger Report 2024")
+        canvas.drawString(2*cm, A4[1] - 1.5*cm,  "Ledger Report 2025")
         canvas.drawString(A4[0] - 2*cm, 1*cm, f"page {doc.page}")
         canvas.restoreState()
 
