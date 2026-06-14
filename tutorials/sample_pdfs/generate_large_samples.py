@@ -1,12 +1,34 @@
+"""
+Stretch exercise — build two MULTI-PAGE sample PDFs (10+ pages each)
+(YOUR CODE GOES HERE)
+
+Once your Tutorial 1 and 2 scripts work on the single-page sample, build bigger,
+more realistic documents and run your code on them. These expose problems that
+only appear across page boundaries (see the README in this folder).
+
+    report_multipage.pdf       A long report: a title, many numbered sections of
+                               headings + paragraphs, with the Tutorial-1 simple
+                               and complex tables interspersed. Must be >= 10 pages.
+
+    ledger_spanning_table.pdf  ONE big table (~440 rows) that continues across
+                               every page, with a repeated header row
+                               (LongTable + repeatRows=1) and a running page
+                               header + "Page N" footer. Must be >= 10 pages.
+
+There are no automated tests for this part — the goal is to run your extractor
+and Markdown converter on these and study what breaks (split tables, repeated
+headers, page furniture, the classifier's false positive on the ledger).
+"""
+
 import sys
 from pathlib import Path
-from datetime import date, timedelta
-from reportlab.lib import colors
+
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, LongTable, Paragraph, Spacer, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet 
+from reportlab.platypus import SimpleDocTemplate  # also: LongTable, Paragraph, Spacer, TableStyle, getSampleStyleSheet
 
+# Reuse the SIMPLE/COMPLEX table builders you wrote in Tutorial 1, so the report
+# contains the very tables you already learned to extract.
 _TUT1 = Path(__file__).parent.parent / "01-tables-simple-vs-complex"
 sys.path.insert(0, str(_TUT1))
 from generate_tables_pdf import build_complex_table, build_simple_table  # noqa: E402
@@ -22,109 +44,29 @@ SECTION_TITLES = [
     "Risk and Compliance", "Sustainability", "Capital Expenditure",
 ]
 
-TEXT = (
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod "
-    "tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, "
-    "quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo. "
-    "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore "
-    "eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident."
-)
 
 def generate_report(output_path=REPORT_PDF, num_sections=16):
-    output_path = Path(output_path)
-    styles = getSampleStyleSheet()
-    story = []
-
-    story.append(Paragraph("Annual Business Report", styles["Title"]))
-    story.append(Spacer(1, 1*cm))
-    story.append(Paragraph("Prepared by the Analytics Team", styles["Normal"]))
-    story.append(Spacer(1, 2*cm))
-
-    for i, title in enumerate(SECTION_TITLES[:num_sections]):
-        story.append(Paragraph(title, styles["Heading2"]))
-        story.append(Spacer(1, 0.3*cm))
-
-        for _ in range(4):
-            story.append(Paragraph(TEXT, styles["BodyText"]))
-            story.append(Spacer(1, 0.2*cm))
-
-        if i % 3 == 1: 
-            story.append(Spacer(1, 0.4*cm))
-            story.append(Paragraph("Summary Table", styles['Heading3']))
-            story.append(build_simple_table())
-            story.append(Spacer(1, 0.4*cm))
-
-        elif i % 3 ==2:
-            story.append(Spacer(1, 0.4*cm))
-            story.append(Paragraph("Regional Breakdown", styles["Heading3"]))
-            story.append(build_complex_table())
-            story.append(Spacer(1, 0.4*cm))
-
-    doc = SimpleDocTemplate(
-        str(output_path), pagesize = A4,
-        leftMargin = 2*cm, rightMargin =2*cm,
-        topMargin = 2*cm, bottomMargin = 2*cm,
-    )
-    doc.build(story)
-    print(f"Report Written to {output_path}")
-    return output_path
+    """
+    Build a multi-section report (>= 10 pages): a Title, then `num_sections`
+    sections, each a Heading2 + a few BodyText paragraphs, with build_simple_table()
+    and build_complex_table() dropped in every few sections. Return the path.
+    """
+    # TODO: assemble a Platypus `story` and doc.build() it. Generate enough
+    #       paragraphs that the document is at least 10 pages.
+    raise NotImplementedError("TODO: build the multi-page report")
 
 
 def generate_ledger(output_path=LEDGER_PDF, n_rows=440):
-    output_path =Path(output_path)
-    header = ["Date", "Txn ID", "Description", "Category", "Debit", "Credit", "Balance"]
-    categories = ["Payroll", "Software", "Travel", "Marketing", "Office", "Utilities"]
-    descriptions = ["Vendor payment", "Subscription renewal", "Reimbursement",
-                    "Ad spend", "Office supplies", "Electricity bill"]
-    
-    rows =[header]
-    balance = 50000.00
-    start = date(2026, 1, 1)
+    """
+    Build a single long table that spans many pages (>= 10). Use a LongTable with
+    repeatRows=1 so the header repeats on every page, and draw a running page
+    header + "Page N" footer with onFirstPage/onLaterPages callbacks. Return path.
 
-    for i in range(n_rows):
-        d = start + timedelta(days = i)
-        txn_id = f"TXN{i + 1:04d}"
-        desc = descriptions[i % len(descriptions)]
-        cat = categories[i % len(categories)]
-        if i % 3 == 0:
-            debit = f"Rs{(i % 10 + 1) * 100:.2f}"
-            credit = ""
-            balance -= (i % 10 +1) * 100
-        else:
-            debit = ""
-            credit = f"RS{(i % 5 + 1) *200:.2f}"
-            balance += (i % 5 +1) * 200
-        rows.append([str(d), txn_id, desc, cat, debit, credit, f"RS{balance:,.2f}"])
-
-    def _draw_header_footer(canvas, doc):
-        canvas.saveState()
-        canvas.setFont("Helvetica", 8)
-        canvas.drawString(2*cm, A4[1] - 1.5*cm,  "Ledger Report 2024")
-        canvas.drawString(A4[0] - 2*cm, 1*cm, f"page {doc.page}")
-        canvas.restoreState()
-
-    col_widths = [3*cm, 2*cm, 4*cm, 3*cm, 2*cm, 2*cm, 3*cm]
-    table = LongTable(rows, colWidths = col_widths, repeatRows=1)
-    table.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
-        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 7),
-        ("ROWBACKGROUND", (0, 1), (-1, -1), colors.white),
-    ]))
-
-    doc = SimpleDocTemplate(
-        str(output_path), pagesize = A4,
-        leftMargin = 2*cm, rightMargin = 2*cm,
-        topMargin = 2.5*cm, bottomMargim = 1.5*cm,
-    )
-    doc.build(
-        [table],
-        onFirstPage=_draw_header_footer,
-        onLaterPages=_draw_header_footer,
-    )
-    print(f"Legder written to {output_path}")
-    print(output_path)
+    Columns: Date, Txn ID, Description, Category, Debit, Credit, Balance.
+    """
+    # TODO: build the rows (deterministically), make a LongTable(..., repeatRows=1),
+    #       and doc.build([table], onFirstPage=..., onLaterPages=...).
+    raise NotImplementedError("TODO: build the page-spanning ledger")
 
 
 if __name__ == "__main__":
