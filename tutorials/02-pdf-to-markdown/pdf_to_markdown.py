@@ -1,34 +1,10 @@
-"""
-Tutorial 2 — convert a PDF into Markdown, by hand  (YOUR CODE GOES HERE)
-
-Read the PDF from Tutorial 1 (text + a simple table + a complex, merged-cell
-table) and emit Markdown that preserves reading order:
-
-    - headings (detected by font size)   -> `#` / `##`
-    - paragraphs                         -> plain text
-    - the SIMPLE table                   -> a GitHub-flavored pipe table
-    - the COMPLEX table                  -> a FLATTENED pipe table + a note
-
-There is no clean way to express row/column spans in Markdown, so for the
-complex table you must make a lossy, documented choice (see README): forward-fill
-the merged holes and fuse the two header rows (e.g. "Q1" + "Revenue" ->
-"Q1 Revenue").
-
-Implement the functions marked TODO, then check your work with:
-    uv run pytest tutorials/02-pdf-to-markdown/test_tutorial2.py
-
-Read the README in this folder first — it walks through the three hard parts
-(reading order, headings from font size, flattening a complex table).
-"""
 
 import sys
 from pathlib import Path
 
 import pdfplumber
 
-# Tutorial 2 reads the PDF that Tutorial 1 builds. Import its generator so this
-# script still works if you run it before building the PDF yourself.
-_TUT1 = Path(__file__).parent.parent / "01-tables-simple-vs-complex"
+_TUT1 = Path(__file__).parent.parent /"01-tables-simple-vs-complex"
 sys.path.insert(0, str(_TUT1))
 from generate_tables_pdf import generate  # noqa: E402
 
@@ -36,7 +12,6 @@ DEFAULT_PDF = _TUT1 / "tables_doc.pdf"
 OUTPUT_DIR = Path(__file__).parent
 
 
-# --- given helpers (use these; you don't need to change them) ----------------
 def _empty(cell):
     return cell is None or str(cell).strip() == ""
 
@@ -46,46 +21,66 @@ def _escape(cell):
     return ("" if cell is None else str(cell)).strip().replace("|", "\\|")
 
 
-# --- YOUR CODE: tables -> markdown -------------------------------------------
+def _render_pipe_table(header, body):
+    sep = ["---"] * len(header)
+    lines =[]
+    lines.append("| " + " | ".join(_escape(c) for c in header) + " |")
+    lines.append("| " + " | ".join(sep) + " |")
+    for row in body:
+        lines.append("| " + " | ".join(_escape(c) for c in row) + " |")
+    return "\n".join(lines)
+
+def _forward_fill(rows):
+    filled =[]
+    for row in rows:
+        new_row = list(row)
+        for i, cell in enumerate(new_row):
+            if _empty(cell) and i > 0:
+                new_row[i] = new_row[i-1]
+        filled.append(new_row)
+
+    for col in range(len(filled[0])):
+        for row_i in range(1, len(filled)):
+            if _empty(filled[row_i][col]):
+                filled[row_i][col] = filled[row_i-1][col]
+    return filled
+
+def _merged_header_rows(filled_rows, n = 2):
+    header =[]
+    for col in range(len(filled_rows[0])):
+        parts =[]
+        seen = set()
+        for row_i in range(n):
+            val = (filled_rows[row_i][col] or "").strip()
+            if val and val not in seen:
+                parts.append(val)
+                seen.add(val)
+        header.append(" ".join(parts))
+    return header
+
 def table_to_markdown(rows):
-    """
-    Turn one extracted table grid into a Markdown pipe table (returned as a str).
+    is_complex = False
+    if len(rows) >= 2:
+        for col in range(min(len(rows[0]), len(rows[1]))):
+            if _empty(rows[0][col]) and not _empty(rows[1][col]):
+                is_complex = True
+                break
+    
+    if not is_complex:
+        header = [ c or "" for c in rows[0]]
+        body = rows[1:]
+        return _render_pipe_table(header, body)
+    else:
+        filled = _forward_fill(rows)
+        header = _merged_header_rows(filled, n=2)
+        body =  filled[2:]
+        note = "<!-- complex table: merged cells flattened, two-row header fused -->\n"
 
-    SIMPLE table  (row 0 has no holes): row 0 is the header, the rest is the body.
-        | h1 | h2 |
-        | --- | --- |
-        | a | b |
-
-    COMPLEX table (row 0 has a hole that row 1 fills -> two-row header):
-        1. forward-fill the holes: an empty cell inherits the nearest filled cell
-           to its LEFT, then (for any still-empty cell) the one ABOVE it.
-        2. fuse the two header rows into one, joined by a space ("Q1 Revenue").
-        3. prepend an HTML comment noting the table was flattened.
-    """
-    # TODO: detect simple vs complex (reuse the rule from Tutorial 1), then
-    #       render. Helpers you may want to write: _render_pipe_table(header,
-    #       body), _forward_fill(rows), _merge_header_rows(filled, n).
-    raise NotImplementedError("TODO: render a table as Markdown")
-
-
-# --- YOUR CODE: text + reading order -----------------------------------------
-# Hints for the page assembly you need below:
-#   - page.find_tables() gives Table objects; each has .bbox (x0, top, x1,
-#     bottom) and .extract() (the grid). Use .bbox to know where the table sits.
-#   - page.extract_words(extra_attrs=["size"]) gives each word an x0/x1/top/
-#     bottom and a font "size". Drop words whose center is inside a table bbox.
-#   - group words into lines by similar `top`; a line's font size tells you if
-#     it is a heading (bigger than the most common = body size).
-#   - tag every block (heading / paragraph line / table) with its `top` and sort
-#     top-to-bottom to recover reading order. Compute the heading size scale ONCE
-#     across the whole document, not per page.
-
+    return note + _render_pipe_table(header, body)
+    
 
 def pdf_to_markdown(pdf_path=DEFAULT_PDF, output_path=None):
-    """
-    Convert the whole PDF to Markdown, write it to `<input-stem>.md` next to this
-    script (unless output_path is given), and return the Markdown string.
-    """
+
     pdf_path = Path(pdf_path)
     if not pdf_path.exists():
         if pdf_path == Path(DEFAULT_PDF):
@@ -95,13 +90,88 @@ def pdf_to_markdown(pdf_path=DEFAULT_PDF, output_path=None):
             raise FileNotFoundError(f"{pdf_path} not found.")
     output_path = Path(output_path) if output_path else OUTPUT_DIR / f"{pdf_path.stem}.md"
 
-    # TODO:
-    #   - open pdf_path with pdfplumber
-    #   - for each page, recover (headings, paragraphs, tables) in reading order
-    #     and render to Markdown (use table_to_markdown for tables)
-    #   - join the pages, write to output_path, and return the string
-    raise NotImplementedError("TODO: convert the PDF to Markdown")
+    sizes = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            for word in page.extract_words(extra_attrs = ["size"]):
+                sizes.append(round(word["size"], 1))
 
+    from collections import Counter
+    body_size = Counter(sizes).most_common(1)[0][0]
+
+    blocks =[]
+
+    page_height = 10000
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_num, page in enumerate(pdf.pages):
+            page_offset = page_num * page_height
+
+            table_objects = page.find_tables()
+            table_bboxes = [t.bbox for t in table_objects]
+
+            def _inside_table(word):
+                wx = (word["x0"] + word["x1"]) / 2 
+                wy = (word["top"] + word["bottom"]) / 2 
+                return any (
+                    x0 <= wx <= x1 and t <= wy <= b
+                    for x0, t, x1, b in table_bboxes
+                ) 
+            
+            words = [w for w in page.extract_words(extra_attrs = ["size"])
+                     if not _inside_table(w)]
+            
+            lines = []
+            for word in sorted(words, key =lambda w: (round(w["top"]), w["x0"])):
+                placed = False
+                for line in lines:
+                    if abs(line["top"] - word["top"]) < 2:
+                        line["words"].append(word)
+                        placed = True
+                        break
+                if not placed:
+                    lines.append({"top": word["top"], "words": [word]})
+
+            para_lines = []
+            para_top = None
+
+            for line in sorted(lines, key = lambda l: l["top"]):
+                text = " ".join(w["text"] for w in sorted(line["words"], key= lambda w: w["x0"]))
+                size =round(line["words"][0]['size'], 1)
+
+                if size > body_size + 3:
+                    if para_lines:
+                        blocks.append({"top": page_offset + para_top, "md": " ".join(para_lines)})
+                        para_lines = []
+                        para_top = None
+                    blocks.append({"top": page_offset + line["top"], "md": f"# {text}"})
+                    continue
+
+                elif size > body_size + 1:
+                    if para_lines:
+                        blocks.append({"top": page_offset + para_top, "md": " ".join(para_lines)})
+                        para_lines = []
+                        para_top = None
+                    blocks.append({"top": page_offset + line["top"], "md": f"## {text}"})
+                    continue
+
+                if para_top is None:
+                    para_top = line["top"]
+                para_lines.append(text)
+
+            if para_lines:
+                blocks.append({"top": page_offset + para_top, "md": " ".join(para_lines)})
+
+            for t in table_objects:
+                rows = t.extract()
+                md = table_to_markdown(rows)
+                blocks.append({"top": page_offset + t.bbox[1], "md":md})
+    
+    blocks.sort(key = lambda b: b["top"])
+    markdown = "\n\n".join(b["md"] for b in blocks)
+    
+    output_path.write_text(markdown, encoding="utf-8")
+    print(f"Written to {output_path}")
+    return markdown
 
 if __name__ == "__main__":
     pdf_to_markdown(sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PDF)
