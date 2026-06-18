@@ -24,19 +24,6 @@ from typing import Callable
 # ---------------------------------------------------------------------------
 
 def chunk_fixed_char(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[str]:
-    """
-    Split text into chunks of `chunk_size` characters with `overlap` characters
-    of overlap between consecutive chunks.
-
-    Returns a list of strings, each at most `chunk_size` characters.
-    The last chunk may be smaller.
-    """
-    # TODO: Implement fixed-size character splitting with overlap.
-    #   - Start at position 0
-    #   - Take chunk_size characters
-    #   - Advance by (chunk_size - overlap)
-    #   - Repeat until end of text
-    #   - Don't create empty chunks
     chunks = []
     start = 0
     stride = chunk_size - overlap
@@ -53,20 +40,8 @@ def chunk_fixed_char(text: str, chunk_size: int = 1000, overlap: int = 200) -> l
 # ---------------------------------------------------------------------------
 # Strategy 2: Fixed-size token splitting
 # ---------------------------------------------------------------------------
-
+import tiktoken
 def chunk_fixed_token(text: str, chunk_size: int = 256, overlap: int = 50) -> list[str]:
-    """
-    Split text into chunks of `chunk_size` tokens with `overlap` token overlap.
-    Uses tiktoken (cl100k_base encoding).
-
-    Returns a list of strings (decoded back from tokens).
-    """
-    # TODO: Implement token-based splitting.
-    #   - Encode the entire text with tiktoken (cl100k_base)
-    #   - Slide a window of chunk_size tokens with stride (chunk_size - overlap)
-    #   - Decode each window back to a string
-    #   - Return the list of decoded chunks
-    import tiktoken
     enc = tiktoken.get_encoding("cl100k_base")
 
     tokens = enc.encode(text)
@@ -90,22 +65,6 @@ def chunk_recursive(
     chunk_size: int = 1000,
     separators: list[str] | None = None,
 ) -> list[str]:
-    """
-    Recursively split text using a hierarchy of separators:
-        ["\n\n", "\n", ". ", " "]
-
-    At each level, split the text by the current separator. If any piece is
-    still larger than chunk_size, split it with the next separator down.
-
-    Returns a list of chunks, each <= chunk_size characters (best effort).
-    """
-    # TODO: Implement recursive splitting.
-    #   - Default separators: ["\n\n", "\n", ". ", " "]
-    #   - Split by first separator
-    #   - For each piece: if len <= chunk_size, keep it
-    #   - If len > chunk_size, recursively split with next separator
-    #   - If no separators left and still too big, force-split at chunk_size
-    #   - Merge small consecutive pieces back together (up to chunk_size)
     if separators is None:
         separators = ["\n\n", "\n", ". ", " "]
 
@@ -153,21 +112,6 @@ def chunk_recursive(
 # ---------------------------------------------------------------------------
 
 def chunk_by_headers(text: str) -> list[dict]:
-    """
-    Split Markdown text at heading boundaries (lines starting with #, ##, ###).
-
-    Returns a list of dicts:
-        [{"heading": "Section Title", "level": 2, "content": "...body text..."}, ...]
-
-    Each chunk contains the text from one heading until the next heading of
-    equal or higher level. Top-level content before any heading gets
-    heading=None, level=0.
-    """
-    # TODO: Implement header-based splitting.
-    #   - Scan line by line for lines matching r'^(#{1,6})\s+(.+)'
-    #   - Accumulate body lines between headings
-    #   - Return list of dicts with heading metadata
-
     chunks = []
     current_heading = None
     current_level = 0
@@ -210,22 +154,6 @@ def chunk_semantic(
     threshold: float = 0.5,
     min_chunk_size: int = 100,
 ) -> list[str]:
-    """
-    Group consecutive sentences by embedding similarity. Split at points
-    where cosine similarity between adjacent sentence groups drops below
-    `threshold`.
-
-    Uses sentence-transformers (all-MiniLM-L6-v2) for embeddings.
-
-    Returns a list of chunks (groups of sentences).
-    """
-    # TODO: Implement semantic chunking.
-    #   - Split text into sentences (by ". " or regex)
-    #   - Embed each sentence with sentence-transformers
-    #   - Compute cosine similarity between each pair of adjacent sentences
-    #   - Find "break points" where similarity < threshold
-    #   - Group sentences between break points into chunks
-    #   - Merge chunks smaller than min_chunk_size with their neighbor
     sentences = re.split(r'(?<=[.!?])\s+', text.strip())
     sentences = [s for s in sentences if s.strip()]
 
@@ -268,24 +196,7 @@ def chunk_semantic(
 # ---------------------------------------------------------------------------
 
 def chunk_table_aware(text: str, chunk_size: int = 1000) -> list[str]:
-    """
-    Keep Markdown tables as atomic units (never split mid-table).
-    Split prose sections using recursive splitting.
-
-    A table is detected as a block of consecutive lines where every line
-    starts with '|' or is a separator row (| --- | --- |).
-
-    Returns a list of chunks. Table chunks may exceed chunk_size if the
-    table itself is larger.
-    """
-    # TODO: Implement table-aware chunking.
-    #   - Parse text into segments: "prose" blocks and "table" blocks
-    #   - A table block = consecutive lines starting with '|'
-    #   - For prose blocks: apply recursive splitting (chunk_size)
-    #   - For table blocks: keep whole (even if > chunk_size)
-    #   - Return all chunks in document order
     lines = text.splitlines(keepends = True)
-
     segments = []
     buffer = []
     in_table = False
@@ -330,22 +241,6 @@ def chunk_sliding_window(
     window_size: int = 1500,
     stride: int = 500,
 ) -> list[str]:
-    """
-    Fixed-size window with stride < window (high overlap for context).
-    Overlap = window_size - stride.
-
-    Like Strategy 1 but with much higher overlap ratio (default 67%).
-    Useful when downstream retrieval benefits from redundant context.
-
-    Returns a list of chunks.
-    """
-    # TODO: Implement sliding window chunking.
-    #   - Start at position 0
-    #   - Take window_size characters
-    #   - Advance by stride
-    #   - Repeat until end
-    #   - Try to break at sentence boundaries within ±50 chars of the cut point
-
     chunks = []
     start = 0
 
