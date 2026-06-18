@@ -14,3 +14,8 @@ dependencies = [
     "pytesseract>=0.3.13",
     "reportlab>=4.5.1",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.0",
+]

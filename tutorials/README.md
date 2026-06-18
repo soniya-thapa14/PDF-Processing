@@ -3,12 +3,27 @@
 Hands-on exercises that go one level deeper than the scripts at the repo root.
 The root scripts already cover the big split — **vector PDFs** (digital text you
 can pull directly) vs **raster PDFs** (pixels you must OCR). These tutorials pick
-up the two pieces that aren't covered yet, and **you implement them yourself**.
+up the pieces that aren't covered yet, and **you implement them yourself**.
 
 | # | Folder | What you'll build |
 |---|--------|-------------------|
 | 1 | [`01-tables-simple-vs-complex/`](01-tables-simple-vs-complex/) | Generate a PDF with a **simple** and a **complex** (merged-cell) table, then extract and tell them apart. |
 | 2 | [`02-pdf-to-markdown/`](02-pdf-to-markdown/) | Read a PDF and emit clean **Markdown** — paragraphs, headings, and both kinds of table. |
+| 3 | [`03-chunking-strategies/`](03-chunking-strategies/) | Apply **7 chunking strategies** to 5 structurally different PDFs and compare results. |
+| 4 | [`04-debugging/`](04-debugging/) | Set up the VSCode **debugger**, step through Tutorial 03 code, find and fix a bug. |
+| 5 | [`05-embeddings-math/`](05-embeddings-math/) | Understand **embeddings** from first principles, build a toy word2vec, then use a real model. |
+| 6 | [`06-vector-store/`](06-vector-store/) | Store embeddings in **Postgres + pgvector**, run similarity search queries. |
+
+## The pipeline
+
+Tutorials 03–06 form a complete RAG preparation pipeline:
+
+```
+PDF files → Markdown → Chunks → Embeddings → Postgres (vector store)
+   T03         T03       T03       T05             T06
+```
+
+Tutorial 04 (debugging) is standalone but uses Tutorial 03's code as its target.
 
 Do them in order: Tutorial 2 reads the PDF that Tutorial 1 builds. Then there's a
 **stretch** exercise in [`sample_pdfs/`](sample_pdfs/): build two 10+ page

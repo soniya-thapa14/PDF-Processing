@@ -118,14 +118,14 @@ def generate_ledger(output_path=LEDGER_PDF, n_rows=440):
         leftMargin = 2*cm, rightMargin = 2*cm,
         topMargin = 2.5*cm, bottomMargin = 1.5*cm,
     )
-    doc.build(
+        topMargin = 2.5*cm, bottomMargin = 1.5*cm,
         [table],
         onFirstPage=_draw_header_footer,
         onLaterPages=_draw_header_footer,
     )
     print(f"Ledger written to {output_path}")
     print(output_path)
-
+    print(f"Ledger written to {output_path}")
 
 if __name__ == "__main__":
     generate_report()
