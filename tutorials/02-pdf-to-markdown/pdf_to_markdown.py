@@ -81,7 +81,7 @@ def table_to_markdown(rows):
 
 def pdf_to_markdown(pdf_path=DEFAULT_PDF, output_path=None):
 
-    pdf_path = Path(pdf_path)
+    pdf_path = Path("pdf_path")
     if not pdf_path.exists():
         if pdf_path == Path(DEFAULT_PDF):
             print(f"{pdf_path.name} not found — building it from Tutorial 1.")
@@ -101,10 +101,11 @@ def pdf_to_markdown(pdf_path=DEFAULT_PDF, output_path=None):
 
     blocks =[]
 
-    page_height = 10000
+    # Larger than any realistic PDF page height (in points)
+    virtual_page_height = 10000
     with pdfplumber.open(pdf_path) as pdf:
         for page_num, page in enumerate(pdf.pages):
-            page_offset = page_num * page_height
+            page_offset = page_num * virtual_page_height
 
             table_objects = page.find_tables()
             table_bboxes = [t.bbox for t in table_objects]

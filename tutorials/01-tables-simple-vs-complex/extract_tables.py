@@ -33,7 +33,7 @@ def classify_table(rows):
     
     if len(rows) >=2:
         for col in range(min(len(rows[0]), len(rows[1]))):
-            if _empty(rows[0][col]) and not _empty(rows[1][0]):
+            if _empty(rows[0][col]) and not _empty(rows[1][col]):
                 reasons.append("two-row header")
                 break
     return ("complex", reasons) if reasons else ("simple", [])

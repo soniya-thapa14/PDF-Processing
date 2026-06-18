@@ -104,7 +104,7 @@ def generate_ledger(output_path=LEDGER_PDF, n_rows=440):
         canvas.restoreState()
 
     col_widths = [3*cm, 2*cm, 4*cm, 3*cm, 2*cm, 2*cm, 3*cm]
-    table = LongTable(rows, colWidths = col_widths, repeatRows=1)
+    table = LongTable(rows, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
@@ -116,14 +116,14 @@ def generate_ledger(output_path=LEDGER_PDF, n_rows=440):
     doc = SimpleDocTemplate(
         str(output_path), pagesize = A4,
         leftMargin = 2*cm, rightMargin = 2*cm,
-        topMargin = 2.5*cm, bottomMargim = 1.5*cm,
+        topMargin = 2.5*cm, bottomMargin = 1.5*cm,
     )
     doc.build(
         [table],
         onFirstPage=_draw_header_footer,
         onLaterPages=_draw_header_footer,
     )
-    print(f"Legder written to {output_path}")
+    print(f"Ledger written to {output_path}")
     print(output_path)
 
 

@@ -41,7 +41,7 @@ DATA_COMPLEX = [
 
 def build_simple_table():
     col_widths = [3.5*cm, 3*cm, 3*cm, 3*cm]
-    t = Table(DATA_SIMPLE, colWidths= col_widths)
+    t = Table(DATA_SIMPLE, colWidths=col_widths)
     t.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
         ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
@@ -53,7 +53,7 @@ def build_simple_table():
 
 def build_complex_table():
     col_widths = [3.5*cm, 2.5*cm, 2.5*cm, 2*cm, 2.5*cm, 2*cm]
-    t = Table(DATA_COMPLEX, colWidths= col_widths)
+    t = Table(DATA_COMPLEX, colWidths=col_widths)
     t.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
         ("BACKGROUND", (0, 0), (-1, 1), colors.lightgrey),
