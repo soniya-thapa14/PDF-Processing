@@ -21,10 +21,10 @@ def generate_all():
     """Generate all 5 sample PDFs."""
     PDF_DIR.mkdir(parents=True, exist_ok=True)
 
-    from generate_zoning_ordinance import generate as gen_zoning
-    from generate_permit_matrix import generate as gen_permit
+    from generate_zoning_ordinance import build_document as gen_zoning
+    from generate_permit_matrix import build_pdf as gen_permit
     from generate_textbook import generate as gen_textbook
-    from generate_technical_manual import generate as gen_manual
+    from generate_technical_manual import main as gen_manual
     from generate_financial_report import generate as gen_financial
 
     generators = [
@@ -41,7 +41,7 @@ def generate_all():
             print(f"  {name} already exists, skipping.")
         else:
             print(f"  Generating {name}...")
-            gen_fn(output)
+            gen_fn()
             print(f"  ✓ {name} created")
 
     print(f"\nAll PDFs in {PDF_DIR}/")
