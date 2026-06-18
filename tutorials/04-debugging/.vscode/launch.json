@@ -1,0 +1,44 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug: chunk_fixed_char",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tutorials/04-debugging/debug_target.py",
+            "args": ["fixed_char"],
+            "cwd": "${workspaceFolder}/tutorials/03-chunking-strategies",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Debug: chunk_recursive",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tutorials/04-debugging/debug_target.py",
+            "args": ["recursive"],
+            "cwd": "${workspaceFolder}/tutorials/03-chunking-strategies",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Debug: pdf_to_markdown",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pdf_to_markdown",
+            "args": ["${workspaceFolder}/tutorials/03-chunking-strategies/pdfs/research_textbook.pdf"],
+            "cwd": "${workspaceFolder}/tutorials/03-chunking-strategies",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Debug: run_all",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tutorials/03-chunking-strategies/run_all.py",
+            "cwd": "${workspaceFolder}/tutorials/03-chunking-strategies",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}
