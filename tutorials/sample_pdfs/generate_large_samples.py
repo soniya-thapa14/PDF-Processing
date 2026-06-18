@@ -125,7 +125,7 @@ def generate_ledger(output_path=LEDGER_PDF, n_rows=440):
     )
     print(f"Legder written to {output_path}")
     print(output_path)
-
+    print(f"Ledger written to {output_path}")
 
 if __name__ == "__main__":
     generate_report()
