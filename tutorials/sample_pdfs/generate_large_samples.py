@@ -118,7 +118,7 @@ def generate_ledger(output_path=LEDGER_PDF, n_rows=440):
         leftMargin = 2*cm, rightMargin = 2*cm,
         topMargin = 2.5*cm, bottomMargin = 1.5*cm,
     )
-        topMargin = 2.5*cm, bottomMargin = 1.5*cm,
+    doc.build(
         [table],
         onFirstPage=_draw_header_footer,
         onLaterPages=_draw_header_footer,

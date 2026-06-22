@@ -36,8 +36,7 @@ def generate_all():
     ]
 
     for name, gen_fn in generators:
-        output = PDF_DIR / name
-        if output.exists():
+        if (PDF_DIR / name).exists():
             print(f"  {name} already exists, skipping.")
         else:
             print(f"  Generating {name}...")

@@ -20,18 +20,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "03-chunking-strategies"))
 
 SAMPLE_TEXT = (
-    "The quick brown fox jumps over the lazy dog. "
-    "Pack my box with five dozen liquor jugs. "
-    "How vexingly quick daft zebras jump. "
-    "The five boxing wizards jump quickly. "
-    "Sphinx of black quartz, judge my vow. "
-    "Two driven jocks help fax my big quiz. "
-    "The jay, pig, fox, zebra and my wolves quack. "
-    "Jackdaws love my big sphinx of quartz. "
-    "We promptly judged antique ivory buckles for the next prize. "
-    "A mad boxer shot a quick, gloved jab to the jaw of his dizzy opponent. "
-    "The job requires extra pluck and zeal from every young wage earner. "
-    "Few quips galvanized the mock jury box. "
+    """Retrieval-augmented generation systems depend heavily on how source documents are split into chunks before being embedded and indexed.
+
+A chunking strategy that ignores natural document structure can fracture sentences mid-thought, which degrades retrieval quality. This is why recursive splitting tries multiple separators in order of preference, falling back only when the larger units are still too big.
+
+The recursive approach first tries to split on paragraph breaks. If a paragraph is still too large for the target chunk size, it falls back to splitting on single newlines. Should that still not be enough, it tries splitting on sentence boundaries marked by a period followed by a space.
+
+Only as a last resort does the algorithm fall back to splitting on whitespace between words, and if even that fails to produce small enough pieces, it resorts to a hard character-level cut with no regard for word boundaries at all. Each fallback represents a loss of semantic coherence in exchange for guaranteeing the chunk size constraint is respected.
+
+Consider a single sentence so long that no whitespace appears within a reasonable distance such as a dense run of numbers or an unbroken identifier string the splitter has no safe place to cut and must fall through every separator tier before reaching the final character level fallback which simply slices the text into fixed size windows regardless of meaning. The final paragraph in this sample exists purely to pad the overall length toward two thousand characters so that a chunk size of three hundred forces multiple levels of recursion to occur, giving the debugger something substantial to step through across several separator tiers. A few extra sentences are added here at the end simply to reach the target length without changing the structural shape of the document, since paragraph and sentence boundaries are what actually drive the recursive splitting behavior under inspection. This sentence repeats with minor variation purely to extend the document toward the target length while preserving normal sentence boundaries for the splitter to find. This sentence repeats with minor variation purely to extend the document toward the target length while preserving normal sentence boun"""
+
 )
 
 
@@ -54,7 +52,7 @@ def chunk_with_overlap_buggy(text: str, chunk_size: int = 80, overlap: int = 20)
 
         # BUG IS HERE: stride calculation is wrong
         # Should advance by (chunk_size - overlap) but advances by (chunk_size - overlap + 1)
-        position = position + (chunk_size - overlap + 1)
+        position = position + (chunk_size - overlap)
 
     return chunks
 

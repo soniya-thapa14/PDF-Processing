@@ -17,7 +17,9 @@ from __future__ import annotations
 
 import re
 from typing import Callable
-
+import tiktoken
+from sentence_transformers import SentenceTransformer
+import numpy as np
 
 # ---------------------------------------------------------------------------
 # Strategy 1: Fixed-size character splitting
@@ -40,13 +42,13 @@ def chunk_fixed_char(text: str, chunk_size: int = 1000, overlap: int = 200) -> l
 # ---------------------------------------------------------------------------
 # Strategy 2: Fixed-size token splitting
 # ---------------------------------------------------------------------------
-import tiktoken
+
 def chunk_fixed_token(text: str, chunk_size: int = 256, overlap: int = 50) -> list[str]:
     enc = tiktoken.get_encoding("cl100k_base")
 
     tokens = enc.encode(text)
     chunks = []
-    stride =chunk_size - overlap
+    stride = chunk_size - overlap
     start = 0
 
     while start < len(tokens):
@@ -73,7 +75,7 @@ def chunk_recursive(
             return []
         
         if len(text) <= chunk_size:
-            return[text]
+            return [text]
         
         if not seps:
             return [text[i: i + chunk_size] for i in range(0, len(text), chunk_size)]
@@ -111,43 +113,55 @@ def chunk_recursive(
 # Strategy 4: Markdown-header splitting
 # ---------------------------------------------------------------------------
 
-def chunk_by_headers(text: str) -> list[dict]:
+def chunk_by_headers(text: str, max_chunk_size: int = 1000) -> list[dict]:
     chunks = []
-    current_heading = None
-    current_level = 0
+    heading_path = []      
     current_lines = []
+
+    def flush():
+        content = "\n".join(current_lines).strip()
+        current_lines.clear()
+        if not content or not heading_path:
+            return
+
+        leaf_heading = heading_path[-1][1]
+        full_path = " > ".join(h for _, h in heading_path)
+        level = heading_path[-1][0]
+
+        if len(content) <= max_chunk_size:
+            chunks.append({
+                "heading": leaf_heading,
+                "path": full_path,
+                "level": level,
+                "content": content,
+            })
+        else:
+            for piece in chunk_recursive(content, chunk_size=max_chunk_size):
+                chunks.append({
+                    "heading": leaf_heading,
+                    "path": full_path,
+                    "level": level,
+                    "content": piece,
+                })
 
     for line in text.splitlines():
         match = re.match(r"^(#{1,6})\s+(.+)", line)
         if match:
-            content = "\n".join(current_lines).strip()
-            if content or current_heading is not None:
-                chunks.append({
-                    "heading": current_heading,
-                    "level": current_level,
-                    "content": content,
-                })
-            current_level = len(match.group(1))
-            current_heading = match.group(2).strip()
-            current_lines = []
+            flush()
+            level = len(match.group(1))
+            heading = match.group(2).strip()
+            while heading_path and heading_path[-1][0] >= level:
+                heading_path.pop()
+            heading_path.append((level, heading))
         else:
             current_lines.append(line)
 
-    content = "\n".join(current_lines).strip()
-    if content or current_heading is not None:
-        chunks.append({
-            "heading": current_heading,
-            "level": current_level,
-            "content": content,
-        })
+    flush()
     return chunks
 
 # ---------------------------------------------------------------------------
 # Strategy 5: Semantic chunking
 # ---------------------------------------------------------------------------
-
-from sentence_transformers import SentenceTransformer
-import numpy as np
 
 def chunk_semantic(
     text: str,
@@ -196,7 +210,7 @@ def chunk_semantic(
 # ---------------------------------------------------------------------------
 
 def chunk_table_aware(text: str, chunk_size: int = 1000) -> list[str]:
-    lines = text.splitlines(keepends = True)
+    lines = text.splitlines(keepends=True)
     segments = []
     buffer = []
     in_table = False
@@ -205,6 +219,31 @@ def chunk_table_aware(text: str, chunk_size: int = 1000) -> list[str]:
         stripped = line.strip()
         return stripped.startswith("|")
     
+    def split_table(table_text: str) -> list[str]:
+        table_lines = table_text.splitlines(keepends=True)
+        if len(table_lines) < 2:
+            return [table_text]
+        
+        header_line = table_lines[0]
+        separator_line = table_lines[1]
+        data_lines = table_lines[2:]
+        prefix = header_line + separator_line
+
+        if len(table_text) <= chunk_size:
+            return [table_text]
+        table_chunks = []
+        current = prefix
+        for line in data_lines:
+            candidate = current + line
+            if len(candidate) <= chunk_size:
+                current = candidate
+            else:
+                table_chunks.append(current)
+                current = prefix + line
+        if current != prefix:
+            table_chunks.append(current)
+        return table_chunks
+   
     for line in lines:
         if is_table_line(line):
             if not in_table:
@@ -227,9 +266,9 @@ def chunk_table_aware(text: str, chunk_size: int = 1000) -> list[str]:
         if not seg_text:
             continue
         if seg_type == "table":
-            chunks.append(seg_text)
+            chunks.extend(split_table(seg_text))
         else:
-            chunks.append(chunk_recursive(seg_text, chunk_size=chunk_size))
+            chunks.extend(chunk_recursive(seg_text, chunk_size=chunk_size))
     return chunks
 
 # ---------------------------------------------------------------------------

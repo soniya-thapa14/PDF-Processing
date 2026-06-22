@@ -47,9 +47,13 @@ def run_matrix():
             try:
                 chunks = chunk_fn(text)
                 if isinstance(chunks[0], dict):
-                    chunk_texts = [c.get("content", "") for c in chunks]
+                    chunk_records = [
+                        {"chunk_id": i, **c} if "content" in c else {"chunk_id": i, "content": "", **c}
+                        for i, c in enumerate(chunks)
+                    ]
                 else:
-                    chunk_texts = chunks
+                    chunk_records = [{"chunk_id": i, "content": c} for i, c in enumerate(chunks)]
+                chunk_texts = [c["content"] for c in chunk_records]
 
                 sizes = [len(c) for c in chunk_texts]
                 avg_size = sum(sizes) / len(sizes) if sizes else 0
@@ -65,13 +69,13 @@ def run_matrix():
                     "avg_size_chars": round(avg_size),
                     "min_size": min_size,
                     "max_size": max_size,
-                    "sample_first_3": chunk_texts[:3],
+                    "sample_first_3": chunk_records[:3],
                 }
                 summary.append(result)
 
                 out_file = RESULTS_DIR / f"{pdf_name}__{strat_name}.json"
                 out_file.write_text(
-                    json.dumps({"chunks": chunk_texts, "stats": result}, indent=2),
+                    json.dumps({"chunks": chunk_records, "stats": result}, indent=2),
                     encoding="utf-8",
                 )
 

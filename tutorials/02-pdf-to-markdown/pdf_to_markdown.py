@@ -81,7 +81,7 @@ def table_to_markdown(rows):
 
 def pdf_to_markdown(pdf_path=DEFAULT_PDF, output_path=None):
 
-    pdf_path = Path("pdf_path")
+    pdf_path = Path(pdf_path)
     if not pdf_path.exists():
         if pdf_path == Path(DEFAULT_PDF):
             print(f"{pdf_path.name} not found — building it from Tutorial 1.")
