@@ -16,7 +16,7 @@ Fill this in as you complete the exercises in the README.
 
 - **Number of recursive calls** for a 2000-char text with chunk_size=300: 5
 - **Separator sequence observed**: '\n\n' -> '\n' -> '. ' -> ' '
-- **What happens when no separator works?**: ___
+- **What happens when no separator works?**: It falls back to slicing the text into fixed chunk_size character pieces, ignoring the word and sentence boundaries.
 
 ## Exercise 3 — Watch Expressions and Conditional Breakpoints
 

@@ -18,7 +18,6 @@ from __future__ import annotations
 import re
 from typing import Callable
 import tiktoken
-from sentence_transformers import SentenceTransformer
 import numpy as np
 
 # ---------------------------------------------------------------------------
@@ -163,6 +162,14 @@ def chunk_by_headers(text: str, max_chunk_size: int = 1000) -> list[dict]:
 # Strategy 5: Semantic chunking
 # ---------------------------------------------------------------------------
 
+_model = None
+def get_model():
+    global _model
+    if _model is None:
+        from sentence_transformers import SentenceTransformer
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _model
+
 def chunk_semantic(
     text: str,
     threshold: float = 0.5,
@@ -173,8 +180,7 @@ def chunk_semantic(
 
     if len(sentences) <= 1:
         return sentences
-    
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+    model = get_model()
     embeddings = model.encode(sentences, convert_to_numpy=True)
 
     def cosine_sim(a, b):
