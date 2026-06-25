@@ -46,19 +46,25 @@ CORPUS = [
 
 
 def build_vocabulary(corpus: list[str], min_count: int = 1) -> tuple[dict, dict]:
-    """
-    Build word-to-index and index-to-word mappings from the corpus.
+    word_count = {}
+    for sent in corpus:
+        words = sent.lower().split(" ")
+        for word in words:
+            if word in word_count:
+                word_count[word] += 1
+            else:
+                word_count[word] = 1
 
-    Returns:
-        word2idx: dict mapping word -> integer index
-        idx2word: dict mapping integer index -> word
-    """
-    # TODO: Tokenize all sentences (split by space, lowercase)
-    #   Count word frequencies, keep words with count >= min_count
-    #   Assign each word a unique integer index
-    #   Return both mappings
-    raise NotImplementedError("TODO: build vocabulary")
-
+    word2idx = {}
+    idx2word = {}
+    counter = 0
+    for word in word_count:
+        if word_count[word] >= min_count:
+            word2idx[word] = counter
+            idx2word[counter] = word
+            counter += 1
+    return word2idx, idx2word
+        
 
 # ---------------------------------------------------------------------------
 # Step 2: Generate training pairs
@@ -69,38 +75,33 @@ def generate_training_pairs(
     word2idx: dict,
     window_size: int = 2,
 ) -> list[tuple[int, int]]:
-    """
-    Generate (center_word_idx, context_word_idx) pairs using a sliding window.
+   
+    pairs = []
+    for sent in corpus:
+        words = sent.lower().split(" ")
+        for i in range(len(words)):
+            center_word = words[i]
+            center_idx = word2idx[center_word]
+            for j in range(i - window_size, i + window_size + 1):
+                if  i == j or j < 0 or j >= len(words):
+                    continue
+                context_word = words[j]
+                context_idx = word2idx[context_word]
+                pairs.append((center_idx, context_idx))
+    return pairs
 
-    For each word in each sentence, the context words are those within
-    `window_size` positions to the left and right.
 
-    Example: "the king rules" with window=1 produces:
-        (king, the), (king, rules), (the, king), (rules, king), etc.
-    """
-    # TODO: For each sentence, for each word position:
-    #   - Get center word index
-    #   - For each position within ±window_size (not the center itself):
-    #     - If valid position, add (center_idx, context_idx) pair
-    #   Return list of all pairs
-    raise NotImplementedError("TODO: generate training pairs")
 
+    
 
 # ---------------------------------------------------------------------------
 # Step 3: Initialize model
 # ---------------------------------------------------------------------------
 
 def initialize_model(vocab_size: int, embedding_dim: int = 20) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Initialize the two weight matrices:
-        W_embed:  (vocab_size, embedding_dim) — input → hidden
-        W_context: (embedding_dim, vocab_size) — hidden → output
-
-    Use small random values (Xavier initialization: scale by 1/sqrt(dim)).
-    """
-    # TODO: Initialize W_embed and W_context with random values
-    #   Scale: np.random.randn(...) * (1.0 / np.sqrt(embedding_dim))
-    raise NotImplementedError("TODO: initialize model weights")
+    w_embed = np.random.randn(vocab_size, embedding_dim) * (1.0 / np.sqrt(embedding_dim))
+    w_context = np.random.randn(embedding_dim, vocab_size) * (1.0 / np.sqrt(embedding_dim))
+    return w_embed, w_context
 
 
 # ---------------------------------------------------------------------------
@@ -108,13 +109,9 @@ def initialize_model(vocab_size: int, embedding_dim: int = 20) -> tuple[np.ndarr
 # ---------------------------------------------------------------------------
 
 def softmax(x: np.ndarray) -> np.ndarray:
-    """Numerically stable softmax."""
-    # TODO: Implement softmax with the exp-shift trick for numerical stability
-    #   shifted = x - max(x)
-    #   exp_x = exp(shifted)
-    #   return exp_x / sum(exp_x)
-    raise NotImplementedError("TODO: implement softmax")
-
+    shifted = x - max(x)
+    exp_x = np.exp(shifted)
+    return exp_x / sum(exp_x)
 
 def train_skipgram(
     pairs: list[tuple[int, int]],
@@ -123,42 +120,45 @@ def train_skipgram(
     epochs: int = 50,
     learning_rate: float = 0.01,
 ) -> np.ndarray:
-    """
-    Train skip-gram model and return the learned embedding matrix.
 
-    For each (center, context) pair:
-        1. Forward: hidden = W_embed[center]  (lookup row)
-                    scores = W_context.T @ hidden  (dot with all context vectors)
-                    probs = softmax(scores)
-        2. Loss: cross-entropy = -log(probs[context])
-        3. Backward: compute gradients for W_embed and W_context
-        4. Update: SGD step
+    w_embed, w_context = initialize_model(vocab_size, embedding_dim)
+    losses = []
+    for epoch in range(epochs):
+        for center, context in pairs:
+            hidden = w_embed[center]
+            scores = w_context.T @ hidden
+            probs = softmax(scores)
+            loss = -np.log(probs[context])
 
-    Returns W_embed after training (each row is a word's embedding).
-    """
-    # TODO: Implement the training loop.
-    #   - Initialize W_embed, W_context
-    #   - Shuffle pairs each epoch
-    #   - For each pair: forward pass → loss → backward → update
-    #   - Print loss every 10 epochs
-    #   - Return W_embed
-    raise NotImplementedError("TODO: implement skip-gram training")
-
+            d_scores = probs.copy()
+            d_scores[context] -= 1
+            d_w_context = np.outer(hidden, d_scores)
+            d_w_embed = w_context @ d_scores
+            w_embed[center] = w_embed[center] - learning_rate * d_w_embed
+            w_context = w_context - learning_rate * d_w_context
+            losses.append(loss)
+        if epoch % 10 == 0:
+            print(f"Epoch {epoch}, loss: {np.mean(losses)}")
+    return w_embed
 
 # ---------------------------------------------------------------------------
 # Step 5: Use the trained embeddings
 # ---------------------------------------------------------------------------
 
 def find_nearest(word: str, word2idx: dict, idx2word: dict, embeddings: np.ndarray, top_k: int = 5) -> list[tuple[str, float]]:
-    """
-    Find the top_k most similar words to `word` using cosine similarity.
+    idx = word2idx[word]
+    word_vec = embeddings[idx]
 
-    Returns list of (word, similarity) tuples, sorted by similarity descending.
-    """
-    # TODO: Get the embedding for `word`
-    #   Compute cosine similarity with all other words
-    #   Return top_k most similar (excluding the word itself)
-    raise NotImplementedError("TODO: implement nearest neighbor search")
+    similarites = []
+    for w, i in word2idx.items():
+        if w == word:
+            continue
+        word_embed = embeddings[i]
+        sim = np.dot(word_vec, word_embed) / (np.linalg.norm(word_vec) * np.linalg.norm(word_embed))
+        similarites.append((w, sim))
+    similarites.sort(key = lambda x:x[1], reverse= True)
+    return similarites[:top_k]
+        
 
 
 # ---------------------------------------------------------------------------

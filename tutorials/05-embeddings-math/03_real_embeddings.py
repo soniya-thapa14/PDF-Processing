@@ -19,42 +19,19 @@ RESULTS_DIR = Path(__file__).parent / "results"
 
 
 def load_model():
-    """
-    Load the sentence-transformers model (all-MiniLM-L6-v2).
-    Downloads on first run (~80MB), runs on CPU.
-
-    Returns the SentenceTransformer model.
-    """
-    # TODO: Import and load SentenceTransformer('all-MiniLM-L6-v2')
-    #   from sentence_transformers import SentenceTransformer
-    #   return SentenceTransformer('all-MiniLM-L6-v2')
-    raise NotImplementedError("TODO: load sentence-transformers model")
-
+    from sentence_transformers import SentenceTransformer
+    return SentenceTransformer("all-MiniLM-L6-v2")
 
 def embed_chunks(model, chunks: list[str]) -> np.ndarray:
-    """
-    Embed a list of text chunks using the model.
-
-    Returns a numpy array of shape (num_chunks, 384).
-    """
-    # TODO: Use model.encode(chunks) to get embeddings
-    #   - Set show_progress_bar=True for visual feedback
-    #   - Return as numpy array
-    raise NotImplementedError("TODO: embed chunks with model")
+    texts = [chunk["content"] for chunk in chunks]
+    embeddings = model.encode(texts, show_progress_bar = True)
+    return embeddings
 
 
 def compute_similarity_matrix(embeddings: np.ndarray) -> np.ndarray:
-    """
-    Compute pairwise cosine similarity between all embeddings.
-
-    Returns a (N, N) matrix where entry (i, j) is the cosine similarity
-    between embedding i and embedding j.
-    """
-    # TODO: Normalize embeddings (L2 norm per row), then dot product
-    #   norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-    #   normalized = embeddings / norms
-    #   return normalized @ normalized.T
-    raise NotImplementedError("TODO: compute similarity matrix")
+    norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+    normalized = embeddings / norms
+    return normalized @ normalized.T
 
 
 def demo_similarity(model, chunks: list[str], embeddings: np.ndarray):
@@ -81,12 +58,10 @@ def demo_similarity(model, chunks: list[str], embeddings: np.ndarray):
 
 
 def search(model, embeddings: np.ndarray, chunks: list[str], query: str, top_k: int = 5):
-    """
-    Find the top_k chunks most similar to a query string.
-    """
-    # TODO: Embed the query, compute cosine similarity with all chunk embeddings
-    #   Return top_k (chunk_text, similarity_score) pairs
-    raise NotImplementedError("TODO: implement search")
+    query_vec = model.encode(query)
+    sim = embeddings @ query_vec
+    top_indicies = np.argsort(sim)[::-1][:top_k]
+    return [(chunks[i], sim[i]) for i in top_indicies]
 
 
 def main():
@@ -134,8 +109,10 @@ def main():
         demo_similarity(model, chunks, embeddings)
 
     print("\n3. Interactive search demo...")
+    # NEW
     if chunk_files:
-        data = json.loads(chunk_files[0].read_text())
+        zoning_file = [f for f in chunk_files if "zoning" in f.name.lower()][0]
+        data = json.loads(zoning_file.read_text())
         chunks = data.get("chunks", [])
         if chunks:
             embeddings = embed_chunks(model, chunks)
@@ -143,7 +120,7 @@ def main():
             print(f"\n   Query: '{query}'")
             results = search(model, embeddings, chunks, query, top_k=3)
             for i, (chunk, score) in enumerate(results):
-                print(f"   [{i+1}] (sim={score:.4f}) {chunk[:80]}...")
+                print(f"   [{i+1}] (sim={score:.4f}) {chunk["content"]}...")
 
     print("\nDone! Embeddings saved to results/")
 
