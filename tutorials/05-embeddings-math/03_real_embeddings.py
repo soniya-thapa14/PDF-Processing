@@ -23,7 +23,7 @@ def load_model():
     return SentenceTransformer("all-MiniLM-L6-v2")
 
 def embed_chunks(model, chunks: list[str]) -> np.ndarray:
-    texts = [chunk["content"] for chunk in chunks]
+    texts =[chunk["content"] if isinstance(chunk, dict) else chunk for chunk in chunks]
     embeddings = model.encode(texts, show_progress_bar = True)
     return embeddings
 
@@ -82,9 +82,11 @@ def main():
         print("   Run Tutorial 03 first: uv run python tutorials/03-chunking-strategies/run_all.py")
         sys.exit(1)
 
-    for chunk_file in chunk_files[:5]:
+    for chunk_file in chunk_files:
         data = json.loads(chunk_file.read_text())
-        chunks = data.get("chunks", [])
+        chunks = data if isinstance(data, list) else data.get("chunks", [])
+        if "summary" in chunk_file.name:
+            continue
         if not chunks:
             continue
 
