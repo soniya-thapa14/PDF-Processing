@@ -245,6 +245,92 @@ For questions with precision=0:
 
 ---
 
+## Theory & References
+
+### Information Retrieval Metrics — The Classics
+
+**"Cumulated Gain-Based Evaluation of IR Techniques"**
+Järvelin & Kekäläinen, 2002 (ACM TOIS)
+[DOI:10.1145/582415.582418](https://dl.acm.org/doi/10.1145/582415.582418)
+
+The paper that introduced NDCG (Normalized Discounted Cumulative Gain).
+Key contribution: previous metrics (precision, recall) treated relevance as
+binary, but real-world relevance is graded. NDCG handles this by applying
+a logarithmic discount to later positions and normalizing against an ideal
+ranking. Still the standard metric for search engine evaluation 20+ years later.
+
+**"Introduction to Information Retrieval"**
+Manning, Raghavan & Schütze, 2008 (Cambridge University Press)
+[nlp.stanford.edu/IR-book](https://nlp.stanford.edu/IR-book/information-retrieval-book.html)
+
+The definitive textbook on IR evaluation (freely available online). Chapter 8
+covers evaluation methodology in depth: precision-recall tradeoffs, MAP (Mean
+Average Precision), and the Cranfield evaluation paradigm that all modern
+retrieval evaluation inherits from.
+
+### Building Evaluation Datasets
+
+**"BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models"**
+Thakur et al., 2021
+[arXiv:2104.08663](https://arxiv.org/abs/2104.08663)
+
+BEIR collects 18 datasets across diverse domains to benchmark retrieval models.
+Key lesson for us: evaluation on a single dataset is misleading — different
+chunking strategies excel on different content types. Our per-PDF evaluation
+follows the same principle.
+
+**"MTEB: Massive Text Embedding Benchmark"**
+Muennighoff et al., 2022
+[arXiv:2210.07316](https://arxiv.org/abs/2210.07316)
+
+Benchmarks embedding models across retrieval, classification, clustering, and
+semantic similarity. Useful for choosing your embedding model — the leaderboard
+at [huggingface.co/spaces/mteb/leaderboard](https://huggingface.co/spaces/mteb/leaderboard)
+shows which models perform best for retrieval tasks.
+
+### LLM-as-Judge
+
+**"Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena"**
+Zheng et al., 2023 (UC Berkeley / LMSYS)
+[arXiv:2306.05685](https://arxiv.org/abs/2306.05685)
+
+Established that strong LLMs (GPT-4) can serve as reliable evaluators of
+text quality, with agreement rates approaching human inter-annotator agreement
+(~80%). Our `eval_generation.py` uses this approach: a separate LLM call
+judges faithfulness and correctness of the RAG answer.
+
+Caveats documented in the paper:
+- Position bias: judge prefers the first response shown
+- Verbosity bias: judge prefers longer responses
+- Self-enhancement: models rate their own outputs higher
+
+We mitigate these by providing only the question + answer (no comparison).
+
+**"RAGAS: Automated Evaluation of Retrieval Augmented Generation"**
+Es et al., 2023
+[arXiv:2309.15217](https://arxiv.org/abs/2309.15217)
+
+RAGAS defines component-wise metrics for RAG systems:
+- **Faithfulness**: fraction of claims in the answer supported by context
+- **Answer relevance**: how well the answer addresses the question
+- **Context precision**: fraction of context chunks that are relevant
+- **Context recall**: fraction of gold-standard info captured by context
+
+Our evaluation implements similar dimensions (faithfulness + correctness).
+
+### Anthropic on Evaluation
+
+**Anthropic — "Evaluating AI Systems"** (2024)
+[docs.anthropic.com/en/docs/build-with-claude/develop-tests](https://docs.anthropic.com/en/docs/build-with-claude/develop-tests)
+
+Anthropic's guide emphasizes:
+- Start with a small, high-quality eval set (20-50 questions)
+- Iterate on the eval set as you improve the system
+- Use both automated metrics AND human review
+- Track regression: re-run evals after every change
+
+---
+
 ## Common Issues
 
 | Problem | Solution |

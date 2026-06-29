@@ -262,6 +262,100 @@ Hybrid wins because:
 
 ---
 
+## Theory & References
+
+### Reciprocal Rank Fusion — The Original Paper
+
+**"Reciprocal Rank Fusion outperforms Condorcet and Individual Rank Learning Methods"**
+Cormack, Clarke & Butt, 2009 (University of Waterloo)
+[SIGIR 2009](https://dl.acm.org/doi/10.1145/1571941.1572114)
+
+The paper that introduced RRF. Key findings:
+- RRF with k=60 consistently outperforms individual rankers
+- It outperforms more complex fusion methods (CombMNZ, Condorcet, Borda)
+- It requires no training data or score normalization
+- The constant k=60 was empirically determined across TREC datasets
+
+> "We demonstrate that RRF is effective regardless of whether the component
+> results to be combined are of high or low quality."
+
+This is why we use k=60 — it's battle-tested across decades of IR research.
+
+### BM25 — The Standard Keyword Ranking Algorithm
+
+**"The Probabilistic Relevance Framework: BM25 and Beyond"**
+Robertson & Zaragoza, 2009 (Microsoft Research)
+[Foundations and Trends in IR](https://www.staff.city.ac.uk/~sbrp622/papers/foundations_bm25_review.pdf)
+
+BM25 builds on TF-IDF with two key improvements:
+- **Term frequency saturation**: diminishing returns from repeated terms
+- **Document length normalization**: prevents long documents from dominating
+
+The formula:
+
+```
+BM25(q, d) = Σ IDF(t) × [tf(t,d) × (k₁ + 1)] / [tf(t,d) + k₁ × (1 - b + b × |d|/avgdl)]
+```
+
+Where k₁ ≈ 1.2 and b ≈ 0.75 are standard parameters. Postgres's `ts_rank`
+implements a simplified version without the full BM25 tuning parameters.
+
+### Dense vs Sparse Retrieval
+
+**"Dense Passage Retrieval for Open-Domain Question Answering"**
+Karpukhin et al., 2020 (Meta AI)
+[arXiv:2004.04906](https://arxiv.org/abs/2004.04906)
+
+DPR showed that learned dense representations (bi-encoder embeddings) can
+outperform BM25 on open-domain QA — but not always. The paper acknowledges
+BM25 remains competitive for:
+- Entity-centric queries (proper names)
+- Rare term matching
+- Very short passages
+
+This motivates our hybrid approach: vector for semantics, keyword for exactness.
+
+**"Text Embeddings by Weakly-Supervised Contrastive Pre-training"**
+Wang et al., 2022 (Microsoft — E5 model)
+[arXiv:2212.03533](https://arxiv.org/abs/2212.03533)
+
+Modern embedding models (E5, BGE) are trained to handle both semantic and
+keyword-style queries. But even the best models have failure modes that
+keyword search covers. The hybrid approach is robust even as embedding
+models improve.
+
+### OpenAI on Search and Retrieval
+
+**OpenAI — "Text Search Using Embeddings"** (2023)
+[platform.openai.com/docs/guides/embeddings/use-cases](https://platform.openai.com/docs/guides/embeddings/use-cases)
+
+OpenAI's guidance acknowledges that embeddings alone aren't always sufficient:
+- Recommend "hybrid search" combining embeddings with keyword filters
+- Suggest using metadata filters to narrow the search space
+- Advise re-ranking results by relevance
+
+**OpenAI — "What Makes a Good Embedding?"** (2022)
+[openai.com/blog/new-and-improved-embedding-model](https://openai.com/blog/new-and-improved-embedding-model)
+
+Discusses failure modes of embeddings:
+- Short queries may not carry enough semantic signal
+- Highly technical/domain-specific terms may not embed well
+- Numbers and codes map to similar embedding regions
+
+### Postgres Full-Text Search
+
+**PostgreSQL Documentation — Full Text Search**
+[postgresql.org/docs/current/textsearch.html](https://www.postgresql.org/docs/current/textsearch.html)
+
+The authoritative reference for `tsvector`, `tsquery`, `ts_rank`, GIN indexes,
+and custom text search configurations. Key concepts:
+- Dictionaries handle stemming and stopwords
+- GIN (Generalized Inverted Index) provides sub-millisecond lookup
+- `plainto_tsquery` converts natural language to tsquery automatically
+- `ts_rank` considers position and frequency for scoring
+
+---
+
 ## Common Issues
 
 | Problem | Solution |

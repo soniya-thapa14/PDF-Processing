@@ -289,6 +289,85 @@ not for injecting factual knowledge.
 
 ---
 
+## Theory & References
+
+### Foundational Paper
+
+**"Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks"**
+Lewis et al., 2020 (Meta AI / Facebook Research)
+[arXiv:2005.11401](https://arxiv.org/abs/2005.11401)
+
+This paper introduced the RAG framework. Key insight: combine a pre-trained
+retriever (DPR — Dense Passage Retrieval) with a pre-trained generator
+(BART) and fine-tune them jointly. The retriever fetches relevant passages
+from a knowledge base, and the generator conditions on both the question and
+the retrieved passages.
+
+> "We build RAG models where the parametric memory is a pre-trained seq2seq
+> model and the non-parametric memory is a dense vector index of Wikipedia,
+> accessed with a pre-trained neural retriever."
+
+The paper demonstrated that RAG outperforms purely parametric models on
+open-domain QA, fact verification, and knowledge-intensive generation.
+
+### Prompt Engineering for Grounded Generation
+
+**Anthropic — "Long Context Window Prompting"** (2024)
+[docs.anthropic.com/en/docs/build-with-claude/prompt-engineering](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering)
+
+Anthropic's prompt engineering guide details how to structure prompts with
+retrieved context. Key recommendations we use in this tutorial:
+- Put the context *before* the question (model attends to recent tokens more)
+- Explicitly instruct "answer ONLY from the provided context"
+- Request citations so the model is accountable for each claim
+- Use XML tags or clear delimiters to separate context from instructions
+
+**OpenAI — "Retrieval Strategies" Cookbook** (2023)
+[cookbook.openai.com/examples/question_answering_using_embeddings](https://cookbook.openai.com/examples/question_answering_using_embeddings)
+
+OpenAI's official guide walks through:
+- Embedding questions and documents with the same model
+- Cosine similarity for retrieval
+- Fitting context into token budgets
+- System prompts that prevent hallucination
+
+### On Hallucination and Faithfulness
+
+**"A Survey on Hallucination in Large Language Models"**
+Huang et al., 2023
+[arXiv:2311.05232](https://arxiv.org/abs/2311.05232)
+
+Categorizes hallucination into:
+- **Intrinsic**: contradicting the source material
+- **Extrinsic**: generating claims not found in any source
+
+RAG specifically targets extrinsic hallucination by providing source material,
+but intrinsic hallucination (misinterpreting the context) remains a risk.
+
+### Token Budget and Context Utilization
+
+**"Lost in the Middle: How Language Models Use Long Contexts"**
+Liu et al., 2023 (Stanford)
+[arXiv:2307.03172](https://arxiv.org/abs/2307.03172)
+
+Critical finding: models attend most strongly to information at the
+**beginning** and **end** of the context window. Information in the middle
+is often ignored. This has direct implications for how we order chunks:
+- Put the most relevant chunk first
+- If budget allows, also put a highly relevant chunk last
+- The "lost in the middle" effect worsens as context length increases
+
+### Streaming and Latency
+
+**OpenAI — "Streaming" API Documentation**
+[platform.openai.com/docs/api-reference/streaming](https://platform.openai.com/docs/api-reference/streaming)
+
+Server-Sent Events (SSE) allow token-by-token delivery. First-token latency
+is typically 200-500ms; total generation time depends on response length.
+Streaming significantly improves perceived performance for the user.
+
+---
+
 ## Check Your Work
 
 - [ ] Can ask a question and get a grounded answer
