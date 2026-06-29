@@ -4,76 +4,306 @@
 
 Add a reranking step between retrieval and generation to improve precision.
 Retrieve broadly (top-50 via hybrid search), rerank to top-5 with a
-cross-encoder, then pass to the LLM.
+cross-encoder, then pass only the best chunks to the LLM.
 
-## Key Concepts
+By the end of this tutorial you will understand:
+- The difference between bi-encoders and cross-encoders
+- Why two-stage retrieval is the industry standard
+- How to use a cross-encoder model for reranking
+- The latency/quality tradeoff and how to tune it
 
-1. **Bi-encoder vs Cross-encoder** — Bi-encoders embed query and doc separately
-   (fast, O(1) per doc at query time); cross-encoders process (query, doc)
-   together (slow, O(n), but much more accurate).
-2. **Two-stage retrieval** — Use fast retrieval for recall, then precise
-   reranking for precision.
-3. **Cross-encoder model** — `cross-encoder/ms-marco-MiniLM-L-6-v2` scores
-   (query, passage) pairs with a relevance score.
-4. **Score thresholding** — Filter out low-confidence chunks after reranking.
-5. **Latency/quality tradeoff** — More candidates = better quality but slower.
+---
+
+## The Problem: Retrieval Is Good but Not Perfect
+
+After Tutorial 09, hybrid search gives us solid recall — the relevant chunks
+are *somewhere* in the top-50. But the ordering isn't perfect. Chunk #15 might
+be more relevant than chunk #3, because vector similarity is an approximation.
+
+If we pass the wrong top-5 to the LLM, we get worse answers. The solution:
+use a more powerful (but slower) model to re-order the candidates.
+
+---
+
+## Bi-Encoders vs Cross-Encoders
+
+### Bi-Encoder (what we've been using)
+
+```
+Query  →  [Encoder]  →  query_embedding
+                                          → cosine_similarity(q, d)
+Doc    →  [Encoder]  →  doc_embedding
+```
+
+- Encodes query and document **independently**
+- Document embeddings computed offline (fast at query time)
+- Scalable to millions of documents
+- But: can't capture query-document **interactions**
+
+### Cross-Encoder (what we add now)
+
+```
+(Query, Doc)  →  [Encoder]  →  relevance_score
+```
+
+- Processes query and document **together** in a single forward pass
+- Captures rich interactions (word overlap, semantic alignment, context)
+- Much more accurate than bi-encoder similarity
+- But: must run once per (query, document) pair — O(n) at query time
+
+### The Tradeoff
+
+| Aspect | Bi-Encoder | Cross-Encoder |
+|--------|-----------|---------------|
+| Speed | O(1) per doc (pre-computed) | O(n) per doc (at query time) |
+| Accuracy | Good | Excellent |
+| Scale | Millions of docs | Dozens of candidates |
+| Use case | First-stage recall | Second-stage precision |
+
+---
 
 ## Two-Stage Architecture
 
+The industry standard combines both:
+
 ```
-Query
-  │
-  ▼
-┌──────────────────┐
-│  Stage 1: Recall │  ← hybrid search (T09), retrieve top-50
-│  (fast, broad)   │
-└────────┬─────────┘
-         │  50 candidates
-         ▼
-┌──────────────────┐
-│  Stage 2: Rerank │  ← cross-encoder scores each (query, chunk) pair
-│  (slow, precise) │
-└────────┬─────────┘
-         │  top-5 (high confidence)
-         ▼
-┌──────────────────┐
-│  Generate Answer │  ← LLM with only the best chunks
-└──────────────────┘
+Stage 1: RECALL (fast, broad)
+├── Hybrid search (vector + BM25)
+├── Retrieve top-50 candidates
+└── Takes ~20ms
+
+Stage 2: RERANK (slow, precise)
+├── Cross-encoder scores each (query, chunk) pair
+├── Re-sort by relevance score
+├── Return top-5 with highest confidence
+└── Takes ~200ms for 50 candidates
+
+Stage 3: GENERATE (LLM)
+├── Only sees the best 5 chunks
+├── Higher context quality → better answers
+└── Takes ~1-3s
 ```
+
+**Why not just use the cross-encoder directly?**
+Scoring 10,000 chunks with a cross-encoder would take ~40 seconds.
+But scoring 50 chunks takes ~200ms. The first stage narrows the field cheaply.
+
+---
+
+## The Cross-Encoder Model
+
+We use `cross-encoder/ms-marco-MiniLM-L-6-v2`:
+- Trained on MS MARCO passage ranking dataset
+- 22M parameters (runs on CPU in ~200ms for 50 pairs)
+- Input: (query, passage) pair
+- Output: relevance score (higher = more relevant)
+- No normalization needed — scores are comparable within a query
+
+```python
+from sentence_transformers import CrossEncoder
+
+model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+scores = model.predict([
+    ("What is attention?", "The attention mechanism computes..."),
+    ("What is attention?", "The weather today is sunny..."),
+])
+# → [8.2, -4.1]  (first is highly relevant, second is not)
+```
+
+---
+
+## Score Thresholding
+
+After reranking, you can filter out low-confidence chunks:
+
+```python
+reranked = rerank(query, candidates, top_k=5, threshold=0.0)
+```
+
+- Scores > 5: Very high confidence (almost certainly relevant)
+- Scores 0-5: Moderate confidence (probably relevant)
+- Scores < 0: Low confidence (probably not relevant)
+
+Thresholding prevents low-quality chunks from polluting the context,
+even if they're in the "top-5" by default.
+
+---
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `reranker.py` | Load cross-encoder, score (query, chunk) pairs |
-| `two_stage_pipeline.py` | Full pipeline: retrieve → rerank → generate |
-| `benchmark.py` | Compare no-rerank vs rerank (latency + quality) |
-| `test_tutorial10.py` | Unit tests |
+| File | Purpose | Key Functions |
+|------|---------|---------------|
+| `reranker.py` | Load cross-encoder, score (query, chunk) pairs | `get_model()`, `rerank()` |
+| `two_stage_pipeline.py` | Full pipeline: retrieve → rerank → generate | `ask_with_reranking()` |
+| `benchmark.py` | Compare with/without reranking on eval set | `benchmark()` |
+| `test_tutorial10.py` | Unit tests (mocked cross-encoder) | 4 tests |
+
+---
 
 ## Setup
 
 ```bash
-# sentence-transformers already installed (provides CrossEncoder)
-# No additional dependencies needed
+# sentence-transformers is already installed (from Tutorial 05/06)
+# The cross-encoder model downloads automatically on first use (~25MB)
 
 # Run the two-stage pipeline
-uv run python tutorials/10-reranking/two_stage_pipeline.py --query "What is attention?"
+uv run python tutorials/10-reranking/two_stage_pipeline.py \
+    --query "What is the scaled dot-product attention formula?"
 
-# Benchmark
-uv run python tutorials/10-reranking/benchmark.py
+# Benchmark with vs without reranking
+uv run python tutorials/10-reranking/benchmark.py --k 5 --retrieve-k 50
 ```
+
+---
+
+## Usage Examples
+
+```bash
+# Basic query with reranking
+uv run python tutorials/10-reranking/two_stage_pipeline.py \
+    --query "What are the parking requirements for commercial zones?"
+
+# Wider recall (more candidates to rerank)
+uv run python tutorials/10-reranking/two_stage_pipeline.py \
+    --query "Explain RLHF" --retrieve-k 100 --rerank-k 5
+
+# With score threshold (only high-confidence chunks)
+uv run python tutorials/10-reranking/two_stage_pipeline.py \
+    --query "GloVe objective function" --threshold 2.0
+
+# Filter by PDF
+uv run python tutorials/10-reranking/two_stage_pipeline.py \
+    --query "Revenue growth Q4" --pdf financial_report
+```
+
+---
 
 ## Tasks
 
-1. Read `reranker.py` — understand bi-encoder vs cross-encoder tradeoff
-2. Run `two_stage_pipeline.py` with a query and observe the reranking
-3. Run `benchmark.py` — compare quality metrics with and without reranking
-4. Experiment: change `retrieve_k` (50, 100, 200) and observe latency/quality
-5. Experiment: add a score threshold to filter low-confidence chunks
+### Task 1: Understand the Cross-Encoder
+Read `reranker.py`. Notice:
+- The model loads once and is cached (`_model` global)
+- `rerank()` creates (query, text) pairs and batch-scores them
+- Results are re-sorted by cross-encoder score, not vector similarity
+
+### Task 2: Run a Query and Inspect Reranking
+```bash
+uv run python tutorials/10-reranking/two_stage_pipeline.py \
+    --query "What is attention?" --retrieve-k 20 --rerank-k 5
+```
+Compare the reranked order to what vector search alone would return.
+Are the top chunks different? Better?
+
+### Task 3: Run the Benchmark
+```bash
+uv run python tutorials/10-reranking/benchmark.py
+```
+Look at the precision/recall/MRR improvement and the latency cost.
+Is the quality gain worth the extra time?
+
+### Task 4: Experiment with retrieve_k
+Try different first-stage sizes:
+```bash
+uv run python tutorials/10-reranking/benchmark.py --retrieve-k 20
+uv run python tutorials/10-reranking/benchmark.py --retrieve-k 50
+uv run python tutorials/10-reranking/benchmark.py --retrieve-k 100
+```
+More candidates = better reranking quality, but higher latency.
+Where is the sweet spot?
+
+### Task 5: Experiment with Thresholding
+Add `--threshold 0.0` to filter out negative-score chunks.
+Does this improve answer quality for questions with sparse relevant content?
+
+### Task 6: Understand the Full Pipeline
+Trace the complete path from question to answer:
+1. Hybrid search (T09) retrieves 50 candidates
+2. Cross-encoder reranks to top-5
+3. `format_context()` (T07) fits them into the prompt
+4. LLM generates the answer with citations
+
+---
+
+## Expected Benchmark Results
+
+Typical improvement from reranking:
+
+```
+Method              Precision    Recall      MRR    Latency
+=======================================================
+Hybrid only             0.420     0.480    0.600      25ms
+Hybrid + Rerank         0.560     0.510    0.720     230ms
+=======================================================
+
+Reranking impact: precision +0.140, MRR +0.120, latency +205ms
+```
+
+The ~200ms latency cost is negligible compared to the 1-3s LLM generation
+time, but the quality improvement is significant.
+
+---
+
+## When Reranking Helps Most
+
+| Scenario | Improvement |
+|----------|------------|
+| Ambiguous queries | High — cross-encoder resolves ambiguity |
+| Long documents (many chunks) | High — more noise to filter |
+| Exact-match queries | Low — keyword search already finds the right chunk |
+| Simple factual queries | Low — vector search is already accurate |
+| Multi-hop questions | High — cross-encoder better at relevance nuance |
+
+---
+
+## Common Issues
+
+| Problem | Solution |
+|---------|----------|
+| First run is slow (~30s) | Model is downloading; subsequent runs use cache |
+| Out of memory | Reduce `retrieve_k` or run on a machine with more RAM |
+| Reranking doesn't help | Check if your queries are too simple (exact keyword matches) |
+| Scores all negative | The chunks may genuinely be irrelevant — check retrieval quality |
+
+---
 
 ## Check Your Work
 
 - [ ] Cross-encoder produces different ordering than vector similarity
-- [ ] Reranked results are more relevant (visually inspect)
-- [ ] Benchmark shows reranking improves precision/MRR on eval set
-- [ ] Can explain the latency tradeoff (reranking adds ~200ms for 50 candidates)
+- [ ] Reranked results are more relevant (visually inspect top-5)
+- [ ] Benchmark shows reranking improves precision and MRR
+- [ ] Can explain the latency tradeoff (~200ms for 50 candidates)
+- [ ] Understand why two-stage is better than cross-encoder alone
+- [ ] Can articulate when reranking helps most vs least
+
+---
+
+## Congratulations!
+
+You've built a complete, production-grade RAG pipeline:
+
+```
+PDF → Markdown → Chunks → Embeddings → Vector Store
+                                              │
+                    ┌───────────────────────────┘
+                    ▼
+              Hybrid Search (Vector + BM25)
+                    │
+                    ▼
+              Cross-Encoder Reranking
+                    │
+                    ▼
+              LLM Generation with Citations
+                    │
+                    ▼
+              Evaluated with Gold-Standard Metrics
+```
+
+This is the same architecture used by production RAG systems at scale.
+The main differences in production are:
+- More sophisticated chunking (overlapping, document-structure-aware)
+- Query understanding/rewriting before retrieval
+- Caching layers for repeated queries
+- Guardrails and content filtering
+- A/B testing different configurations
+
+You now have the foundation to build any of these extensions.
