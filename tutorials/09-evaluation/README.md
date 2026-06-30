@@ -1,4 +1,4 @@
-# Tutorial 08 — Retrieval Evaluation & Quality Metrics
+# Tutorial 09 — Retrieval Evaluation & Quality Metrics
 
 ## Goal
 
@@ -177,20 +177,20 @@ evaluates whether the answer is independently sensible and accurate.
 
 ## Setup
 
-Requires Tutorial 06 (vector store populated) and Tutorial 07 (RAG pipeline).
+Requires Tutorial 06 (vector store populated) and Tutorial 08 (RAG pipeline).
 
 ```bash
 # Run retrieval evaluation (no LLM calls needed)
-uv run python tutorials/08-evaluation/eval_retrieval.py
+uv run python tutorials/09-evaluation/eval_retrieval.py
 
 # Compare strategies across the eval set
-uv run python tutorials/08-evaluation/compare_strategies.py
+uv run python tutorials/09-evaluation/compare_strategies.py
 
 # LLM-based answer evaluation (requires API key, costs a few cents)
-uv run python tutorials/08-evaluation/eval_generation.py --max-questions 5
+uv run python tutorials/09-evaluation/eval_generation.py --max-questions 5
 
 # Inspect the eval dataset
-uv run python tutorials/08-evaluation/build_eval_set.py --stats
+uv run python tutorials/09-evaluation/build_eval_set.py --stats
 ```
 
 ---
@@ -204,19 +204,19 @@ Read `eval_dataset.json`. For each question, mentally check:
 
 ### Task 2: Run Retrieval Evaluation
 ```bash
-uv run python tutorials/08-evaluation/eval_retrieval.py --k 5
+uv run python tutorials/09-evaluation/eval_retrieval.py --k 5
 ```
 Look at per-question scores. Which questions have 0 precision? Why?
 
 ### Task 3: Compare Chunking Strategies
 ```bash
-uv run python tutorials/08-evaluation/compare_strategies.py --k 5
+uv run python tutorials/09-evaluation/compare_strategies.py --k 5
 ```
 Which strategy wins overall? Does the winner change for different PDF types?
 
 ### Task 4: Run LLM-as-Judge
 ```bash
-uv run python tutorials/08-evaluation/eval_generation.py --max-questions 5
+uv run python tutorials/09-evaluation/eval_generation.py --max-questions 5
 ```
 Compare faithfulness vs correctness scores. Are they correlated?
 
@@ -355,7 +355,7 @@ Anthropic's guide emphasizes:
 
 ## What's Next
 
-In **Tutorial 09**, we'll address a fundamental weakness of pure vector search:
+In **Tutorial 10**, we'll address a fundamental weakness of pure vector search:
 it fails on exact matches (codes, numbers, specific names). By adding
 keyword-based BM25 search and fusing it with vector search, we get the best
 of both worlds — and the evaluation set from this tutorial will prove it.

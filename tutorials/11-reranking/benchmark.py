@@ -5,9 +5,9 @@ import time
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "07-basic-rag"))
-sys.path.insert(0, str(Path(__file__).parent.parent / "08-evaluation"))
-sys.path.insert(0, str(Path(__file__).parent.parent / "09-hybrid-search"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "08-basic-rag"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "09-evaluation"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "10-hybrid-search"))
 sys.path.insert(0, str(Path(__file__).parent))
 
 from hybrid_search import hybrid_search
@@ -15,7 +15,7 @@ from reranker import rerank
 from eval_retrieval import precision_at_k, recall_at_k, mrr
 
 
-EVAL_DATA = Path(__file__).parent.parent / "08-evaluation" / "eval_dataset.json"
+EVAL_DATA = Path(__file__).parent.parent / "09-evaluation" / "eval_dataset.json"
 
 
 def benchmark(k: int = 5, retrieve_k: int = 50):

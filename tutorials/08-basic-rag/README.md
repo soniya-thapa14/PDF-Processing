@@ -1,4 +1,4 @@
-# Tutorial 07 — Basic RAG (Retrieval-Augmented Generation)
+# Tutorial 08 — Basic RAG (Retrieval-Augmented Generation)
 
 ## Goal
 
@@ -201,16 +201,16 @@ Make sure you have:
 
 ```bash
 # Interactive mode — ask multiple questions in a loop
-uv run python tutorials/07-basic-rag/demo.py
+uv run python tutorials/08-basic-rag/demo.py
 
 # Single question — prints answer and exits
-uv run python tutorials/07-basic-rag/demo.py --query "What are the setback requirements for R-1 zones?"
+uv run python tutorials/08-basic-rag/demo.py --query "What are the setback requirements for R-1 zones?"
 
 # Filter by specific PDF
-uv run python tutorials/07-basic-rag/demo.py --query "Explain attention mechanism" --pdf research_textbook
+uv run python tutorials/08-basic-rag/demo.py --query "Explain attention mechanism" --pdf research_textbook
 
 # Retrieve more chunks for richer context
-uv run python tutorials/07-basic-rag/demo.py --query "Compare GloVe and Word2Vec" --top-k 10
+uv run python tutorials/08-basic-rag/demo.py --query "Compare GloVe and Word2Vec" --top-k 10
 ```
 
 ---
@@ -381,7 +381,7 @@ Streaming significantly improves perceived performance for the user.
 
 ## What's Next
 
-In **Tutorial 08**, we'll measure how good this retrieval actually is.
+In **Tutorial 09**, we'll measure how good this retrieval actually is.
 Right now we're eyeballing answers — but how do we know if the right chunks
 were retrieved? We'll build a gold-standard evaluation set and compute
 Precision@k, Recall@k, and MRR to objectively compare strategies.

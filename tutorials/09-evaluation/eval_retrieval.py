@@ -4,7 +4,7 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "07-basic-rag"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "08-basic-rag"))
 sys.path.insert(0, str(Path(__file__).parent.parent / "06-vector-store"))
 
 from rag_pipeline import retrieve

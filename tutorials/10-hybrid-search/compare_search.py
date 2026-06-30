@@ -4,8 +4,8 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "07-basic-rag"))
-sys.path.insert(0, str(Path(__file__).parent.parent / "08-evaluation"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "08-basic-rag"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "09-evaluation"))
 sys.path.insert(0, str(Path(__file__).parent))
 
 from rag_pipeline import retrieve as vector_search
@@ -14,7 +14,7 @@ from hybrid_search import hybrid_search
 from eval_retrieval import precision_at_k, recall_at_k, mrr
 
 
-EVAL_DATA = Path(__file__).parent.parent / "08-evaluation" / "eval_dataset.json"
+EVAL_DATA = Path(__file__).parent.parent / "09-evaluation" / "eval_dataset.json"
 
 
 def evaluate_search_method(search_fn, questions, k=5, **kwargs):

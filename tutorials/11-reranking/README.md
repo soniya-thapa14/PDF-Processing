@@ -1,4 +1,4 @@
-# Tutorial 10 — Reranking with Cross-Encoders
+# Tutorial 11 — Reranking with Cross-Encoders
 
 ## Goal
 
@@ -16,7 +16,7 @@ By the end of this tutorial you will understand:
 
 ## The Problem: Retrieval Is Good but Not Perfect
 
-After Tutorial 09, hybrid search gives us solid recall — the relevant chunks
+After Tutorial 10, hybrid search gives us solid recall — the relevant chunks
 are *somewhere* in the top-50. But the ordering isn't perfect. Chunk #15 might
 be more relevant than chunk #3, because vector similarity is an approximation.
 
@@ -147,11 +147,11 @@ even if they're in the "top-5" by default.
 # The cross-encoder model downloads automatically on first use (~25MB)
 
 # Run the two-stage pipeline
-uv run python tutorials/10-reranking/two_stage_pipeline.py \
+uv run python tutorials/11-reranking/two_stage_pipeline.py \
     --query "What is the scaled dot-product attention formula?"
 
 # Benchmark with vs without reranking
-uv run python tutorials/10-reranking/benchmark.py --k 5 --retrieve-k 50
+uv run python tutorials/11-reranking/benchmark.py --k 5 --retrieve-k 50
 ```
 
 ---
@@ -160,19 +160,19 @@ uv run python tutorials/10-reranking/benchmark.py --k 5 --retrieve-k 50
 
 ```bash
 # Basic query with reranking
-uv run python tutorials/10-reranking/two_stage_pipeline.py \
+uv run python tutorials/11-reranking/two_stage_pipeline.py \
     --query "What are the parking requirements for commercial zones?"
 
 # Wider recall (more candidates to rerank)
-uv run python tutorials/10-reranking/two_stage_pipeline.py \
+uv run python tutorials/11-reranking/two_stage_pipeline.py \
     --query "Explain RLHF" --retrieve-k 100 --rerank-k 5
 
 # With score threshold (only high-confidence chunks)
-uv run python tutorials/10-reranking/two_stage_pipeline.py \
+uv run python tutorials/11-reranking/two_stage_pipeline.py \
     --query "GloVe objective function" --threshold 2.0
 
 # Filter by PDF
-uv run python tutorials/10-reranking/two_stage_pipeline.py \
+uv run python tutorials/11-reranking/two_stage_pipeline.py \
     --query "Revenue growth Q4" --pdf financial_report
 ```
 
@@ -188,7 +188,7 @@ Read `reranker.py`. Notice:
 
 ### Task 2: Run a Query and Inspect Reranking
 ```bash
-uv run python tutorials/10-reranking/two_stage_pipeline.py \
+uv run python tutorials/11-reranking/two_stage_pipeline.py \
     --query "What is attention?" --retrieve-k 20 --rerank-k 5
 ```
 Compare the reranked order to what vector search alone would return.
@@ -196,7 +196,7 @@ Are the top chunks different? Better?
 
 ### Task 3: Run the Benchmark
 ```bash
-uv run python tutorials/10-reranking/benchmark.py
+uv run python tutorials/11-reranking/benchmark.py
 ```
 Look at the precision/recall/MRR improvement and the latency cost.
 Is the quality gain worth the extra time?
@@ -204,9 +204,9 @@ Is the quality gain worth the extra time?
 ### Task 4: Experiment with retrieve_k
 Try different first-stage sizes:
 ```bash
-uv run python tutorials/10-reranking/benchmark.py --retrieve-k 20
-uv run python tutorials/10-reranking/benchmark.py --retrieve-k 50
-uv run python tutorials/10-reranking/benchmark.py --retrieve-k 100
+uv run python tutorials/11-reranking/benchmark.py --retrieve-k 20
+uv run python tutorials/11-reranking/benchmark.py --retrieve-k 50
+uv run python tutorials/11-reranking/benchmark.py --retrieve-k 100
 ```
 More candidates = better reranking quality, but higher latency.
 Where is the sweet spot?
@@ -217,7 +217,7 @@ Does this improve answer quality for questions with sparse relevant content?
 
 ### Task 6: Understand the Full Pipeline
 Trace the complete path from question to answer:
-1. Hybrid search (T09) retrieves 50 candidates
+1. Hybrid search (T10) retrieves 50 candidates
 2. Cross-encoder reranks to top-5
 3. `format_context()` (T07) fits them into the prompt
 4. LLM generates the answer with citations

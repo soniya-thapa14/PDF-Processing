@@ -1,4 +1,4 @@
-# Tutorial 09 — Hybrid Search (Vector + BM25)
+# Tutorial 10 — Hybrid Search (Vector + BM25)
 
 ## Goal
 
@@ -180,7 +180,7 @@ The constant `k` controls how much we trust later positions:
 This adds a `tsvector` column to your existing `pdf_chunks` table:
 
 ```bash
-uv run python tutorials/09-hybrid-search/keyword_search.py --init
+uv run python tutorials/10-hybrid-search/keyword_search.py --init
 ```
 
 What this does:
@@ -192,19 +192,19 @@ What this does:
 ### Step 2: Test keyword search
 
 ```bash
-uv run python tutorials/09-hybrid-search/keyword_search.py --query "R-1 zone setback"
+uv run python tutorials/10-hybrid-search/keyword_search.py --query "R-1 zone setback"
 ```
 
 ### Step 3: Run hybrid search
 
 ```bash
-uv run python tutorials/09-hybrid-search/hybrid_search.py --query "What is the attention formula?"
+uv run python tutorials/10-hybrid-search/hybrid_search.py --query "What is the attention formula?"
 ```
 
 ### Step 4: Compare methods
 
 ```bash
-uv run python tutorials/09-hybrid-search/compare_search.py --k 5
+uv run python tutorials/10-hybrid-search/compare_search.py --k 5
 ```
 
 ---
@@ -231,7 +231,7 @@ test cases in `test_tutorial9.py`. Can you predict the output?
 
 ### Task 4: Run the Comparison
 ```bash
-uv run python tutorials/09-hybrid-search/compare_search.py
+uv run python tutorials/10-hybrid-search/compare_search.py
 ```
 Does hybrid consistently beat both individual methods?
 
@@ -380,7 +380,7 @@ and custom text search configurations. Key concepts:
 
 ## What's Next
 
-In **Tutorial 10**, we address the final quality bottleneck: even with hybrid
+In **Tutorial 11**, we address the final quality bottleneck: even with hybrid
 search, the top-5 results aren't perfectly ordered. A cross-encoder reranker
 processes each (query, chunk) pair jointly — much slower, but dramatically
 more accurate. We'll build a two-stage pipeline: fast recall (hybrid, top-50)

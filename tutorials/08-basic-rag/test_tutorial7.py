@@ -61,6 +61,6 @@ def test_generate_calls_api(mock_get_client):
     mock_client.chat.completions.create.return_value = mock_response
     mock_get_client.return_value = mock_client
 
-    result = llm_client.generate([{"role": "user", "content": "hi"}])
+    result = llm_client.generate([{"role": "user", "content": "hi"}], model="test-model")
     assert result == "Test answer"
     mock_client.chat.completions.create.assert_called_once()

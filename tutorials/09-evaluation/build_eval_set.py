@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "06-vector-store"))
-sys.path.insert(0, str(Path(__file__).parent.parent / "07-basic-rag"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "08-basic-rag"))
 
 EVAL_DATA = Path(__file__).parent / "eval_dataset.json"
 
