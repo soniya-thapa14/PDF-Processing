@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    build: .
     container_name: pdf_vectorstore
     environment:
       POSTGRES_DB: pdf_embeddings

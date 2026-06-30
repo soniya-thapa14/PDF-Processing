@@ -25,17 +25,12 @@ DB_CONFIG = {
 
 
 def get_connection():
-    """Connect to Postgres."""
-    # TODO: Same as store_embeddings.py
-    raise NotImplementedError("TODO: implement database connection")
-
+    import psycopg2
+    return psycopg2.connect(**DB_CONFIG)
 
 def load_model():
-    """Load the embedding model (same as Tutorial 05)."""
-    # TODO: from sentence_transformers import SentenceTransformer
-    #   return SentenceTransformer('all-MiniLM-L6-v2')
-    raise NotImplementedError("TODO: load embedding model")
-
+    from sentence_transformers import SentenceTransformer
+    return SentenceTransformer('all-MiniLM-L6-v2')
 
 def search(
     query: str,
@@ -43,34 +38,41 @@ def search(
     pdf_filter: str | None = None,
     strategy_filter: str | None = None,
 ) -> list[dict]:
+    model = load_model()
+    query_vec = model.encode(query).tolist()
+    sql = """
+        SELECT chunk_text, pdf_name, chunk_strategy,
+            1 - (embedding <=> CAST(%(query_vec)s AS vector)) AS similarity
+        FROM pdf_chunks
+        WHERE 1=1
     """
-    Embed the query and find the top_k most similar chunks.
+    params = {"query_vec": query_vec, "top_k": top_k}
 
-    Uses pgvector's <=> operator (cosine distance).
-    Similarity = 1 - cosine_distance.
+    if pdf_filter:
+        sql += " AND pdf_name = %(pdf)s "
+        params["pdf"] = pdf_filter
 
-    Args:
-        query: the search text
-        top_k: number of results
-        pdf_filter: if set, only search within this PDF's chunks
-        strategy_filter: if set, only search chunks from this strategy
+    if strategy_filter:
+        sql += " AND chunk_strategy = %(strategy)s "
+        params["strategy"] = strategy_filter
+    
+    sql += "ORDER BY embedding <=> CAST(%(query_vec)s AS vector) LIMIT %(top_k)s"
 
-    Returns list of dicts:
-        [{"chunk_text": "...", "similarity": 0.85, "pdf_name": "...", "strategy": "..."}, ...]
-    """
-    # TODO: Implement vector search:
-    #   1. Embed the query with the model
-    #   2. Build SQL:
-    #      SELECT chunk_text, pdf_name, chunk_strategy,
-    #             1 - (embedding <=> %(query_vec)s) AS similarity
-    #      FROM pdf_chunks
-    #      WHERE 1=1
-    #        [AND pdf_name = %(pdf)s]
-    #        [AND chunk_strategy = %(strategy)s]
-    #      ORDER BY embedding <=> %(query_vec)s
-    #      LIMIT %(top_k)s
-    #   3. Execute and return results
-    raise NotImplementedError("TODO: implement vector search")
+    conn =  None
+    try:
+        conn = get_connection()
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+    finally:
+        if conn:
+            conn.close()
+    return [
+        {"chunk_text": row[0], "pdf_name": row[1], "strategy": row[2], "similarity": row[3]}
+        for row in rows
+    ]
+
+
 
 
 def main():
@@ -103,7 +105,7 @@ def main():
 
     for i, r in enumerate(results, 1):
         print(f"[{i}] similarity={r['similarity']:.4f}  pdf={r['pdf_name']}  strategy={r['strategy']}")
-        print(f"    {r['chunk_text'][:120]}...")
+        print(f"    {r['chunk_text']}...")
         print()
 
 

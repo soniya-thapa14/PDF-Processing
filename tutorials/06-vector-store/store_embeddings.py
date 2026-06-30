@@ -27,59 +27,59 @@ DB_CONFIG = {
 
 
 def get_connection():
-    """
-    Connect to the Postgres database.
-
-    Returns a psycopg connection.
-    """
-    # TODO: Use psycopg to connect with DB_CONFIG
-    #   import psycopg
-    #   return psycopg.connect(**DB_CONFIG)
-    raise NotImplementedError("TODO: implement database connection")
+    import psycopg2
+    return psycopg2.connect(**DB_CONFIG)
 
 
 def create_schema():
-    """
-    Create the pdf_chunks table and indexes (idempotent).
-    Reads schema.sql and executes it.
-    """
-    # TODO: Read schema.sql, execute it via get_connection()
-    #   schema_path = Path(__file__).parent / "schema.sql"
-    #   sql = schema_path.read_text()
-    #   conn = get_connection()
-    #   conn.execute(sql)
-    #   conn.commit()
-    raise NotImplementedError("TODO: implement schema creation")
+    schema_path = Path(__file__).parent / "schema.sql"
+    sql = schema_path.read_text()
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(sql)
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def insert_embeddings():
-    """
-    Load .npy files from Tutorial 05 and corresponding chunk texts from Tutorial 03.
-    Insert each chunk + embedding as a row in pdf_chunks.
-    """
-    # TODO: Implement insertion logic:
-    #   1. List all .npy files in EMBEDDINGS_DIR
-    #   2. For each .npy file:
-    #      - Parse pdf_name and chunk_strategy from filename (format: "{pdf}__{strategy}.npy")
-    #      - Load embeddings: np.load(npy_path)
-    #      - Load chunk texts from corresponding JSON in CHUNKS_DIR
-    #      - For each (index, chunk_text, embedding):
-    #        INSERT INTO pdf_chunks (pdf_name, chunk_strategy, chunk_index, chunk_text, embedding)
-    #        VALUES (%s, %s, %s, %s, %s)
-    #        ON CONFLICT DO NOTHING
-    #   3. Commit and report count
-    raise NotImplementedError("TODO: implement embedding insertion")
+    try:
+        conn = get_connection()
+        with conn.cursor() as cur:
+            for npy_path in EMBEDDINGS_DIR.glob("*.npy"):
+                pdf_name, chunk_strategy = npy_path.stem.split("__")
+                embeddings = np.load(npy_path)
+                chunks = json.loads((CHUNKS_DIR / f"{npy_path.stem}.json").read_text())["chunks"]
 
-
+                for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+                    chunk_text = chunk["content"]
+                    cur.execute("INSERT INTO pdf_chunks (pdf_name, chunk_strategy, chunk_index, chunk_text, embedding) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+                                (pdf_name, chunk_strategy, i, chunk_text, embedding.tolist()))
+        conn.commit()
+        print(f"\nInserted chunks successfully")
+    finally:
+        conn.close()
+           
 def get_stats():
-    """Print database statistics."""
-    # TODO: Query and print:
-    #   - Total rows in pdf_chunks
-    #   - Distinct pdf_names
-    #   - Distinct strategies
-    #   - Row count per (pdf_name, strategy)
-    raise NotImplementedError("TODO: implement stats query")
-
+    try:
+        conn = get_connection()
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM pdf_chunks")
+            total = cur.fetchone()[0]
+            print(f"Total rows: {total}")
+            cur.execute("SELECT DISTINCT pdf_name FROM pdf_chunks")
+            pdf_names = cur.fetchall()
+            print(f"PDFS: {pdf_names}")
+            cur.execute("SELECT DISTINCT chunk_strategy FROM pdf_chunks")
+            strategies = cur.fetchall()
+            print(f"strategies: {strategies}")
+            cur.execute("SELECT pdf_name, chunk_strategy, COUNT(*) FROM pdf_chunks GROUP BY pdf_name, chunk_strategy")
+            rows = cur.fetchall()
+            print(f"Rows per (pdf, strategy): {rows}")    
+    finally:
+        conn.close()
 
 def main():
     if "--init" in sys.argv:
@@ -104,3 +104,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
