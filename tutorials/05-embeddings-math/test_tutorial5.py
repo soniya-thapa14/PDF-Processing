@@ -5,7 +5,7 @@ Tutorial 05 — Tests
 """
 
 import numpy as np
-from _01_math_foundations import dot_product, magnitude, cosine_similarity, euclidean_distance
+from math_foundations import dot_product, magnitude, cosine_similarity, euclidean_distance
 
 
 def test_dot_product():

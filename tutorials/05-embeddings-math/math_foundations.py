@@ -5,7 +5,7 @@ Implement vector operations from scratch with numpy, then demonstrate
 why cosine similarity is the right metric for comparing text embeddings.
 
 Usage:
-    uv run python tutorials/05-embeddings-math/01_math_foundations.py
+    uv run python tutorials/05-embeddings-math/math_foundations.py
 """
 
 import numpy as np
@@ -16,47 +16,20 @@ import numpy as np
 # ---------------------------------------------------------------------------
 
 def dot_product(a: np.ndarray, b: np.ndarray) -> float:
-    """
-    Compute the dot product of two vectors.
-    dot(a, b) = sum(a_i * b_i)
-
-    Do NOT use np.dot — implement with element-wise ops.
-    """
-    # TODO: Implement dot product manually
-    raise NotImplementedError("TODO: implement dot product")
+    return float(np.sum(a * b))
 
 
 def magnitude(v: np.ndarray) -> float:
-    """
-    Compute the L2 norm (magnitude) of a vector.
-    |v| = sqrt(sum(v_i^2))
-
-    Do NOT use np.linalg.norm — implement manually.
-    """
-    # TODO: Implement magnitude
-    raise NotImplementedError("TODO: implement magnitude")
+    return float(np.sqrt(np.sum(v ** 2)))
 
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
-    """
-    Compute cosine similarity between two vectors.
-    cos(a, b) = dot(a, b) / (|a| * |b|)
-
-    Use your dot_product() and magnitude() functions.
-    Returns a value between -1 and 1.
-    """
-    # TODO: Implement cosine similarity using your functions above
-    raise NotImplementedError("TODO: implement cosine similarity")
+    return dot_product(a, b) / (magnitude(a) * magnitude(b))
 
 
 def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
-    """
-    Compute Euclidean distance between two vectors.
-    d(a, b) = sqrt(sum((a_i - b_i)^2))
-    """
-    # TODO: Implement Euclidean distance
-    raise NotImplementedError("TODO: implement euclidean distance")
-
+    diff = a - b
+    return float(np.sqrt(np.sum(diff ** 2)))
 
 # ---------------------------------------------------------------------------
 # Demonstration
