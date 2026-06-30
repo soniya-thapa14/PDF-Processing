@@ -1,4 +1,15 @@
-"""Two-stage retrieval pipeline: broad recall → precise reranking → LLM generation."""
+"""
+Tutorial 11 — Two-Stage Retrieval Pipeline
+
+Retrieve broadly (top-50 via hybrid search) → rerank to top-5 → generate answer.
+
+Usage:
+    uv run python tutorials/11-reranking/two_stage_pipeline.py --query "What is attention?"
+
+Implement the functions marked # TODO.
+"""
+
+from __future__ import annotations
 
 import sys
 import time
@@ -7,11 +18,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "10-hybrid-search"))
 sys.path.insert(0, str(Path(__file__).parent.parent / "08-basic-rag"))
 sys.path.insert(0, str(Path(__file__).parent))
-
-from hybrid_search import hybrid_search
-from reranker import rerank
-from prompts import format_context, build_messages
-import llm_client
 
 
 def ask_with_reranking(
@@ -23,10 +29,11 @@ def ask_with_reranking(
     strategy: str = None,
     stream: bool = False,
     threshold: float = None,
-):
-    """Full two-stage RAG pipeline.
+) -> dict:
+    """
+    Full two-stage RAG pipeline: retrieve → rerank → generate.
 
-    Stage 1: Hybrid search retrieves top-`retrieve_k` candidates (fast, broad recall)
+    Stage 1: Hybrid search retrieves top-`retrieve_k` candidates (fast, broad)
     Stage 2: Cross-encoder reranks to top-`rerank_k` (slow, precise)
     Stage 3: LLM generates answer from reranked context
 
@@ -41,45 +48,20 @@ def ask_with_reranking(
         threshold: minimum rerank score to include
 
     Returns:
-        dict with answer, sources, timings
+        dict with keys:
+        - answer: the generated response
+        - sources: reranked chunk dicts
+        - candidates_count: how many first-stage results
+        - reranked_count: how many survived reranking
+        - timings: dict with retrieve_ms, rerank_ms, generate_ms, total_ms
     """
-    t0 = time.time()
-
-    candidates = hybrid_search(
-        query=question, top_k=retrieve_k, pdf_name=pdf_name, strategy=strategy
-    )
-    t_retrieve = time.time() - t0
-
-    t1 = time.time()
-    reranked = rerank(question, candidates, top_k=rerank_k, threshold=threshold)
-    t_rerank = time.time() - t1
-
-    if not reranked:
-        return {
-            "answer": "No sufficiently relevant chunks found after reranking.",
-            "sources": [],
-            "timings": {"retrieve_ms": t_retrieve * 1000, "rerank_ms": t_rerank * 1000},
-        }
-
-    context = format_context(reranked, max_tokens=max_context_tokens)
-    messages = build_messages(question, context)
-
-    t2 = time.time()
-    answer = llm_client.generate(messages, stream=stream)
-    t_generate = time.time() - t2
-
-    return {
-        "answer": answer,
-        "sources": reranked,
-        "candidates_count": len(candidates),
-        "reranked_count": len(reranked),
-        "timings": {
-            "retrieve_ms": round(t_retrieve * 1000),
-            "rerank_ms": round(t_rerank * 1000),
-            "generate_ms": round(t_generate * 1000),
-            "total_ms": round((time.time() - t0) * 1000),
-        },
-    }
+    # TODO: Implement two-stage pipeline.
+    #   - Time each stage using time.time()
+    #   - Stage 1: hybrid_search(query=question, top_k=retrieve_k, ...)
+    #   - Stage 2: rerank(question, candidates, top_k=rerank_k, threshold=threshold)
+    #   - Stage 3: format_context → build_messages → generate
+    #   - Return dict with answer, sources, timings
+    raise NotImplementedError("TODO: implement ask_with_reranking")
 
 
 def main():
@@ -104,10 +86,6 @@ def main():
     print(f"Answer: {result['answer']}\n")
     print(f"Timings: {result['timings']}")
     print(f"Candidates: {result.get('candidates_count', 0)} → Reranked: {result.get('reranked_count', 0)}")
-    print("\nSources:")
-    for i, s in enumerate(result["sources"], 1):
-        print(f"  [{i}] rerank_score={s.get('rerank_score', 0):.3f}  "
-              f"pdf={s['pdf_name']}  chunk={s['chunk_index']}")
 
 
 if __name__ == "__main__":

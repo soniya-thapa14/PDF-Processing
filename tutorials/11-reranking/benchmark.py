@@ -1,4 +1,15 @@
-"""Benchmark: compare retrieval with and without reranking."""
+"""
+Tutorial 11 — Benchmark: compare retrieval with and without reranking.
+
+Measures quality (precision, recall, MRR) and latency for both approaches.
+
+Usage:
+    uv run python tutorials/11-reranking/benchmark.py --k 5 --retrieve-k 50
+
+Implement the functions marked # TODO.
+"""
+
+from __future__ import annotations
 
 import json
 import time
@@ -10,60 +21,36 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "09-evaluation"))
 sys.path.insert(0, str(Path(__file__).parent.parent / "10-hybrid-search"))
 sys.path.insert(0, str(Path(__file__).parent))
 
-from hybrid_search import hybrid_search
-from reranker import rerank
-from eval_retrieval import precision_at_k, recall_at_k, mrr
-
 
 EVAL_DATA = Path(__file__).parent.parent / "09-evaluation" / "eval_dataset.json"
 
 
-def benchmark(k: int = 5, retrieve_k: int = 50):
-    """Compare hybrid-only vs hybrid+rerank on the eval set."""
-    with open(EVAL_DATA) as f:
-        questions = json.load(f)
+def benchmark(k: int = 5, retrieve_k: int = 50) -> dict:
+    """
+    Compare hybrid-only vs hybrid+rerank on the eval set.
 
-    results = {"no_rerank": [], "with_rerank": []}
-    timings = {"no_rerank": [], "with_rerank": []}
+    For each question:
+    1. Run hybrid search (time it)
+    2. Take top-k without reranking → compute metrics
+    3. Rerank the candidates → take top-k → compute metrics (time it)
 
-    for q in questions:
-        t0 = time.time()
-        candidates = hybrid_search(
-            query=q["question"], top_k=retrieve_k, pdf_name=q.get("pdf_name")
-        )
-        t_hybrid = time.time() - t0
+    Args:
+        k: final top-k for both methods
+        retrieve_k: first-stage candidate count
 
-        no_rerank_indices = [c["chunk_index"] for c in candidates[:k]]
-        results["no_rerank"].append(no_rerank_indices)
-        timings["no_rerank"].append(t_hybrid * 1000)
-
-        t1 = time.time()
-        reranked = rerank(q["question"], candidates, top_k=k)
-        t_rerank = time.time() - t1
-
-        rerank_indices = [c["chunk_index"] for c in reranked]
-        results["with_rerank"].append(rerank_indices)
-        timings["with_rerank"].append((t_hybrid + t_rerank) * 1000)
-
-    metrics = {}
-    for method in ["no_rerank", "with_rerank"]:
-        total_p, total_r, total_mrr = 0.0, 0.0, 0.0
-        for i, q in enumerate(questions):
-            gold = q["gold_chunk_indices"]
-            retrieved = results[method][i]
-            total_p += precision_at_k(retrieved, gold, k)
-            total_r += recall_at_k(retrieved, gold, k)
-            total_mrr += mrr(retrieved, gold)
-        n = len(questions)
-        avg_time = sum(timings[method]) / n
-        metrics[method] = {
-            "precision": total_p / n,
-            "recall": total_r / n,
-            "mrr": total_mrr / n,
-            "avg_latency_ms": avg_time,
-        }
-
-    return metrics
+    Returns:
+        dict mapping method ("no_rerank", "with_rerank") → metrics dict
+        with keys: precision, recall, mrr, avg_latency_ms
+    """
+    # TODO: Implement benchmark.
+    #   - Load eval_dataset.json
+    #   - Import hybrid_search, rerank, precision_at_k, recall_at_k, mrr
+    #   - For each question:
+    #     - Time hybrid_search → extract top-k indices → compute metrics
+    #     - Time rerank → extract top-k indices → compute metrics
+    #   - Average metrics and timings
+    #   - Return comparison dict
+    raise NotImplementedError("TODO: implement benchmark")
 
 
 def main():
@@ -83,12 +70,6 @@ def main():
         print(f"{label:<18} {m['precision']:>10.3f} {m['recall']:>8.3f} "
               f"{m['mrr']:>6.3f} {m['avg_latency_ms']:>8.0f}ms")
     print("=" * 55)
-
-    delta_p = metrics["with_rerank"]["precision"] - metrics["no_rerank"]["precision"]
-    delta_mrr = metrics["with_rerank"]["mrr"] - metrics["no_rerank"]["mrr"]
-    delta_t = metrics["with_rerank"]["avg_latency_ms"] - metrics["no_rerank"]["avg_latency_ms"]
-    print(f"\nReranking impact: precision {delta_p:+.3f}, MRR {delta_mrr:+.3f}, "
-          f"latency {delta_t:+.0f}ms")
 
 
 if __name__ == "__main__":

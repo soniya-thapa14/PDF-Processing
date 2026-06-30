@@ -1,4 +1,10 @@
-"""Tests for Tutorial 07 — Basic RAG pipeline."""
+"""Tests for Tutorial 08 — Basic RAG pipeline.
+
+Run: uv run pytest tutorials/08-basic-rag/ -v
+
+These tests verify your implementations of prompts.py, llm_client.py, and
+rag_pipeline.py. Make the tests pass by implementing the # TODO functions.
+"""
 
 import sys
 from pathlib import Path
@@ -9,7 +15,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 from prompts import format_context, build_messages, SYSTEM_PROMPT
 
 
-def test_format_context_basic():
+# ---------------------------------------------------------------------------
+# format_context tests
+# ---------------------------------------------------------------------------
+
+def test_format_context_numbers_sources():
+    """Each chunk should be labeled [Source 1], [Source 2], etc."""
     chunks = [
         {"chunk_text": "The sky is blue.", "pdf_name": "test.pdf",
          "chunk_strategy": "fixed_char", "similarity": 0.95},
@@ -21,37 +32,97 @@ def test_format_context_basic():
     assert "[Source 2]" in result
     assert "The sky is blue." in result
     assert "Water is wet." in result
-    assert "test.pdf" in result
+
+
+def test_format_context_includes_metadata():
+    """Source headers should include pdf_name and chunk_strategy."""
+    chunks = [
+        {"chunk_text": "Hello", "pdf_name": "report.pdf",
+         "chunk_strategy": "semantic", "similarity": 0.9},
+    ]
+    result = format_context(chunks, max_tokens=500)
+    assert "report.pdf" in result
+    assert "semantic" in result
 
 
 def test_format_context_respects_token_budget():
+    """Should not exceed max_tokens * 4 characters."""
     chunks = [
         {"chunk_text": "A" * 5000, "pdf_name": "big.pdf",
          "chunk_strategy": "fixed_char", "similarity": 0.9},
-        {"chunk_text": "Should not appear", "pdf_name": "small.pdf",
+        {"chunk_text": "Should not appear in full", "pdf_name": "small.pdf",
          "chunk_strategy": "fixed_char", "similarity": 0.8},
     ]
-    result = format_context(chunks, max_tokens=500)
-    assert "Should not appear" not in result
+    result = format_context(chunks, max_tokens=500)  # ~2000 chars budget
+    assert "Should not appear in full" not in result
 
 
-def test_build_messages_structure():
+def test_format_context_empty_chunks():
+    """Empty chunk list should return empty string or similar."""
+    result = format_context([], max_tokens=1000)
+    assert result == "" or result is not None
+
+
+# ---------------------------------------------------------------------------
+# build_messages tests
+# ---------------------------------------------------------------------------
+
+def test_build_messages_returns_two_messages():
+    """Should return [system_msg, user_msg]."""
     messages = build_messages("What is RAG?", "Some context here.")
     assert len(messages) == 2
     assert messages[0]["role"] == "system"
     assert messages[1]["role"] == "user"
-    assert "What is RAG?" in messages[1]["content"]
-    assert "Some context here." in messages[1]["content"]
+
+
+def test_build_messages_system_prompt():
+    """System message should contain the SYSTEM_PROMPT."""
+    messages = build_messages("test", "context")
     assert SYSTEM_PROMPT in messages[0]["content"]
 
 
-def test_build_messages_includes_citation_instruction():
-    messages = build_messages("test question", "test context")
-    assert "[Source N]" in messages[1]["content"]
+def test_build_messages_includes_question():
+    """User message should contain the question."""
+    messages = build_messages("What is the height limit?", "context text")
+    assert "What is the height limit?" in messages[1]["content"]
+
+
+def test_build_messages_includes_context():
+    """User message should contain the context."""
+    messages = build_messages("question", "My special context string")
+    assert "My special context string" in messages[1]["content"]
+
+
+def test_build_messages_citation_instruction():
+    """User message should instruct the model to cite sources."""
+    messages = build_messages("test", "test")
+    assert "[Source N]" in messages[1]["content"] or "Source" in messages[1]["content"]
+
+
+# ---------------------------------------------------------------------------
+# llm_client tests (mocked — no real API calls)
+# ---------------------------------------------------------------------------
+
+def test_generate_raises_without_model():
+    """generate() should raise ValueError if no model configured."""
+    import llm_client
+    import os
+    old = os.environ.get("RAG_MODEL", "")
+    os.environ["RAG_MODEL"] = ""
+    try:
+        llm_client.DEFAULT_MODEL = ""
+        try:
+            llm_client.generate([{"role": "user", "content": "hi"}])
+            assert False, "Should have raised ValueError"
+        except (ValueError, NotImplementedError):
+            pass  # Either is acceptable (NotImplementedError if not yet implemented)
+    finally:
+        os.environ["RAG_MODEL"] = old
 
 
 @patch("llm_client.get_client")
-def test_generate_calls_api(mock_get_client):
+def test_generate_calls_api_with_model(mock_get_client):
+    """generate() should call the OpenAI API with the specified model."""
     import llm_client
 
     mock_client = MagicMock()

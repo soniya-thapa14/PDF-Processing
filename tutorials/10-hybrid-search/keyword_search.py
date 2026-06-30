@@ -1,26 +1,37 @@
-"""Keyword search using Postgres full-text search (BM25-like ranking)."""
+"""
+Tutorial 10 — Keyword Search using Postgres Full-Text Search
+
+BM25-style search using Postgres tsvector and ts_rank.
+
+Usage:
+    uv run python tutorials/10-hybrid-search/keyword_search.py --init
+    uv run python tutorials/10-hybrid-search/keyword_search.py --query "R-1 zone"
+
+Implement the functions marked # TODO.
+"""
+
+from __future__ import annotations
 
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "06-vector-store"))
-from store_embeddings import get_connection
-
 
 SCHEMA_FTS = Path(__file__).parent / "schema_fts.sql"
 
 
 def init_fts():
-    """Apply the full-text search schema migration."""
-    sql = SCHEMA_FTS.read_text()
-    conn = get_connection()
-    try:
-        with conn.cursor() as cur:
-            cur.execute(sql)
-        conn.commit()
-        print("Full-text search schema applied successfully.")
-    finally:
-        conn.close()
+    """
+    Apply the full-text search schema migration (schema_fts.sql).
+
+    Reads the SQL file and executes it against the database.
+    This adds the tsvector column, GIN index, and trigger.
+    """
+    # TODO: Implement FTS initialization.
+    #   - Import get_connection from Tutorial 06's store_embeddings
+    #   - Read SCHEMA_FTS file
+    #   - Execute the SQL and commit
+    raise NotImplementedError("TODO: implement init_fts")
 
 
 def keyword_search(
@@ -29,9 +40,11 @@ def keyword_search(
     pdf_name: str = None,
     strategy: str = None,
 ) -> list[dict]:
-    """Search chunks using Postgres full-text search.
+    """
+    Search chunks using Postgres full-text search.
 
-    Converts the query to a tsquery and ranks results using ts_rank.
+    Uses plainto_tsquery to convert natural language to a tsquery,
+    then ranks results using ts_rank.
 
     Args:
         query: natural language search query
@@ -40,45 +53,16 @@ def keyword_search(
         strategy: optional strategy filter
 
     Returns:
-        List of dicts with chunk_text, pdf_name, chunk_strategy, rank
+        List of dicts with: chunk_text, pdf_name, chunk_strategy, chunk_index, rank
     """
-    conn = get_connection()
-    try:
-        with conn.cursor() as cur:
-            where_clauses = ["tsv @@ plainto_tsquery('english', %(query)s)"]
-            params = {"query": query, "top_k": top_k}
-
-            if pdf_name:
-                where_clauses.append("pdf_name = %(pdf)s")
-                params["pdf"] = pdf_name
-            if strategy:
-                where_clauses.append("chunk_strategy = %(strategy)s")
-                params["strategy"] = strategy
-
-            where_sql = " AND ".join(where_clauses)
-            sql = f"""
-                SELECT chunk_text, pdf_name, chunk_strategy, chunk_index,
-                       ts_rank(tsv, plainto_tsquery('english', %(query)s)) AS rank
-                FROM pdf_chunks
-                WHERE {where_sql}
-                ORDER BY rank DESC
-                LIMIT %(top_k)s
-            """
-            cur.execute(sql, params)
-            rows = cur.fetchall()
-
-        return [
-            {
-                "chunk_text": row[0],
-                "pdf_name": row[1],
-                "chunk_strategy": row[2],
-                "chunk_index": row[3],
-                "rank": float(row[4]),
-            }
-            for row in rows
-        ]
-    finally:
-        conn.close()
+    # TODO: Implement keyword search.
+    #   - Import get_connection from Tutorial 06
+    #   - Build WHERE clause: tsv @@ plainto_tsquery('english', query)
+    #   - Add optional filters for pdf_name and strategy
+    #   - SELECT with ts_rank(tsv, plainto_tsquery(...)) AS rank
+    #   - ORDER BY rank DESC, LIMIT top_k
+    #   - Return results as list of dicts
+    raise NotImplementedError("TODO: implement keyword_search")
 
 
 def main():

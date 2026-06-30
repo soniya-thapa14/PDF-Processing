@@ -1,13 +1,18 @@
-"""LLM-as-judge evaluation for answer quality."""
+"""
+Tutorial 09 — LLM-as-Judge for answer quality evaluation.
+
+Uses a separate LLM call to score RAG answers on faithfulness and correctness.
+
+Usage:
+    uv run python tutorials/09-evaluation/eval_generation.py --max-questions 5
+
+Implement the functions marked # TODO.
+"""
+
+from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent / "08-basic-rag"))
-
-from rag_pipeline import ask
-import llm_client
 
 
 EVAL_DATA = Path(__file__).parent / "eval_dataset.json"
@@ -25,74 +30,48 @@ Respond with ONLY a JSON object:
 
 
 def judge_answer(question: str, answer: str) -> dict:
-    """Use an LLM to judge answer quality."""
-    messages = [
-        {"role": "system", "content": JUDGE_PROMPT},
-        {"role": "user", "content": f"Question: {question}\n\nAnswer: {answer}"},
-    ]
-    response = llm_client.generate(messages, temperature=0.0)
-    try:
-        return json.loads(response)
-    except json.JSONDecodeError:
-        return {"faithfulness": 0, "correctness": 0, "reasoning": f"Failed to parse: {response[:200]}"}
+    """
+    Use an LLM to judge answer quality on faithfulness and correctness.
+
+    Sends the JUDGE_PROMPT as system message, and question+answer as user message.
+    Parses the JSON response.
+
+    Args:
+        question: the original question
+        answer: the RAG-generated answer
+
+    Returns:
+        dict with keys: faithfulness (1-5), correctness (1-5), reasoning (str)
+        On parse failure, return scores of 0 with error in reasoning.
+    """
+    # TODO: Implement LLM-as-judge.
+    #   - Import generate from llm_client (Tutorial 08)
+    #   - Build messages: system=JUDGE_PROMPT, user=question+answer
+    #   - Call generate with temperature=0.0
+    #   - Parse JSON response
+    #   - Handle JSONDecodeError gracefully
+    raise NotImplementedError("TODO: implement judge_answer")
 
 
-def evaluate_generation(top_k: int = 5, max_questions: int = None):
-    """Run end-to-end evaluation: generate answers and judge them."""
-    with open(EVAL_DATA) as f:
-        questions = json.load(f)
+def evaluate_generation(top_k: int = 5, max_questions: int = None) -> dict:
+    """
+    Run end-to-end evaluation: generate answers and judge them.
 
-    if max_questions:
-        questions = questions[:max_questions]
+    For each question in eval_dataset.json:
+    1. Call the RAG pipeline (Tutorial 08's ask())
+    2. Judge the answer with judge_answer()
+    3. Collect scores
 
-    results = []
-    total_faithfulness = 0.0
-    total_correctness = 0.0
+    Args:
+        top_k: chunks to retrieve per question
+        max_questions: limit number of questions (for cost control)
 
-    for q in questions:
-        print(f"  Evaluating: {q['id']} — {q['question'][:50]}...")
-        rag_result = ask(q["question"], top_k=top_k, pdf_name=q.get("pdf_name"))
-        answer = rag_result["answer"]
-
-        scores = judge_answer(q["question"], answer)
-
-        results.append({
-            "id": q["id"],
-            "question": q["question"],
-            "answer": answer[:200],
-            **scores,
-        })
-        total_faithfulness += scores.get("faithfulness", 0)
-        total_correctness += scores.get("correctness", 0)
-
-    n = len(results)
-    aggregate = {
-        "avg_faithfulness": total_faithfulness / n if n else 0,
-        "avg_correctness": total_correctness / n if n else 0,
-    }
-
-    return {"per_question": results, "aggregate": aggregate}
-
-
-def main():
-    import argparse
-    parser = argparse.ArgumentParser(description="Evaluate answer generation quality")
-    parser.add_argument("--k", type=int, default=5)
-    parser.add_argument("--max-questions", type=int, default=5, help="Limit for cost control")
-    args = parser.parse_args()
-
-    print(f"Evaluating generation (k={args.k}, max={args.max_questions})...\n")
-    results = evaluate_generation(top_k=args.k, max_questions=args.max_questions)
-
-    for r in results["per_question"]:
-        print(f"  {r['id']}: faithfulness={r.get('faithfulness', '?')}/5, "
-              f"correctness={r.get('correctness', '?')}/5")
-        print(f"    Reason: {r.get('reasoning', 'N/A')[:80]}")
-
-    agg = results["aggregate"]
-    print(f"\nAverages: faithfulness={agg['avg_faithfulness']:.2f}/5, "
-          f"correctness={agg['avg_correctness']:.2f}/5")
-
-
-if __name__ == "__main__":
-    main()
+    Returns:
+        dict with 'per_question' (list) and 'aggregate' (avg scores)
+    """
+    # TODO: Implement generation evaluation.
+    #   - Load eval_dataset.json
+    #   - For each question, call ask() then judge_answer()
+    #   - Collect per-question results
+    #   - Compute aggregate averages
+    raise NotImplementedError("TODO: implement evaluate_generation")

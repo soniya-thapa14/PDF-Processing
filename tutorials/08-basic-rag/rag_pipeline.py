@@ -1,16 +1,33 @@
-"""RAG pipeline: retrieve relevant chunks → format context → generate answer."""
+"""
+Tutorial 08 — RAG Pipeline
+
+Orchestrates the full retrieve → format → generate flow.
+
+Usage:
+    from rag_pipeline import ask
+    result = ask("What are the setback requirements?")
+    print(result["answer"])
+
+Implement the functions marked # TODO.
+"""
+
+from __future__ import annotations
 
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "06-vector-store"))
 
-from prompts import format_context, build_messages
-import llm_client
-
 
 def retrieve(query: str, top_k: int = 5, pdf_name: str = None, strategy: str = None) -> list[dict]:
-    """Retrieve relevant chunks from the vector store.
+    """
+    Retrieve relevant chunks from the vector store (Tutorial 06).
+
+    Steps:
+    1. Load the embedding model (from Tutorial 06's search module)
+    2. Encode the query into a vector
+    3. Query Postgres for nearest neighbors using cosine distance
+    4. Apply optional filters (pdf_name, strategy)
 
     Args:
         query: natural language question
@@ -19,51 +36,21 @@ def retrieve(query: str, top_k: int = 5, pdf_name: str = None, strategy: str = N
         strategy: optional filter by chunking strategy
 
     Returns:
-        List of dicts with chunk_text, pdf_name, chunk_strategy, similarity
+        List of dicts with: chunk_text, pdf_name, chunk_strategy, chunk_index, similarity
     """
-    from search import get_connection, load_model
-
-    model = load_model()
-    query_embedding = model.encode([query])[0]
-    query_vec = "[" + ",".join(str(x) for x in query_embedding) + "]"
-
-    conn = get_connection()
-    try:
-        with conn.cursor() as cur:
-            where_clauses = ["1=1"]
-            params = {"query_vec": query_vec, "top_k": top_k}
-
-            if pdf_name:
-                where_clauses.append("pdf_name = %(pdf)s")
-                params["pdf"] = pdf_name
-            if strategy:
-                where_clauses.append("chunk_strategy = %(strategy)s")
-                params["strategy"] = strategy
-
-            where_sql = " AND ".join(where_clauses)
-            sql = f"""
-                SELECT chunk_text, pdf_name, chunk_strategy, chunk_index,
-                       1 - (embedding <=> %(query_vec)s::vector) AS similarity
-                FROM pdf_chunks
-                WHERE {where_sql}
-                ORDER BY embedding <=> %(query_vec)s::vector
-                LIMIT %(top_k)s
-            """
-            cur.execute(sql, params)
-            rows = cur.fetchall()
-
-        results = []
-        for row in rows:
-            results.append({
-                "chunk_text": row[0],
-                "pdf_name": row[1],
-                "chunk_strategy": row[2],
-                "chunk_index": row[3],
-                "similarity": float(row[4]),
-            })
-        return results
-    finally:
-        conn.close()
+    # TODO: Implement retrieval.
+    #   - Import get_connection, load_model from Tutorial 06's search module
+    #   - Encode query with the model
+    #   - Format vector as Postgres-compatible string: "[0.1,0.2,...]"
+    #   - Build SQL query:
+    #       SELECT chunk_text, pdf_name, chunk_strategy, chunk_index,
+    #              1 - (embedding <=> %(vec)s::vector) AS similarity
+    #       FROM pdf_chunks
+    #       WHERE [optional filters]
+    #       ORDER BY embedding <=> %(vec)s::vector
+    #       LIMIT %(top_k)s
+    #   - Execute and return results as list of dicts
+    raise NotImplementedError("TODO: implement retrieve")
 
 
 def ask(
@@ -74,8 +61,15 @@ def ask(
     strategy: str = None,
     stream: bool = False,
     model: str = None,
-):
-    """Full RAG pipeline: retrieve → format → generate.
+) -> dict:
+    """
+    Full RAG pipeline: retrieve → format → generate.
+
+    Steps:
+    1. Call retrieve() to get relevant chunks
+    2. Call format_context() to fit chunks into token budget
+    3. Call build_messages() to assemble the prompt
+    4. Call generate() to get the LLM response
 
     Args:
         question: natural language question about the PDFs
@@ -83,29 +77,20 @@ def ask(
         max_context_tokens: token budget for context
         pdf_name: optional filter by PDF source
         strategy: optional filter by chunking strategy
-        stream: if True, returns a generator of answer chunks
+        stream: if True, answer is a generator of chunks
         model: LLM model name override
 
     Returns:
-        dict with keys: answer, sources, context_used
-        (if stream=True, answer is a generator)
+        dict with keys:
+        - answer: string (or generator if stream=True)
+        - sources: list of chunk dicts from retrieval
+        - context_used: number of chunks that fit in context
     """
-    chunks = retrieve(query=question, top_k=top_k, pdf_name=pdf_name, strategy=strategy)
-
-    if not chunks:
-        return {
-            "answer": "No relevant chunks found in the database. Make sure you've run the embedding pipeline (Tutorials 03-06).",
-            "sources": [],
-            "context_used": 0,
-        }
-
-    context = format_context(chunks, max_tokens=max_context_tokens)
-    messages = build_messages(question, context)
-
-    answer = llm_client.generate(messages, model=model, stream=stream)
-
-    return {
-        "answer": answer,
-        "sources": chunks,
-        "context_used": len(chunks),
-    }
+    # TODO: Implement the full pipeline.
+    #   - Call retrieve(query=question, top_k=top_k, ...)
+    #   - If no chunks found, return message saying so
+    #   - Call format_context(chunks, max_tokens=max_context_tokens)
+    #   - Call build_messages(question, context)
+    #   - Call generate(messages, model=model, stream=stream)
+    #   - Return dict with answer, sources, context_used
+    raise NotImplementedError("TODO: implement ask")
