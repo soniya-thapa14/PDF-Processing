@@ -13,17 +13,37 @@ up the pieces that aren't covered yet, and **you implement them yourself**.
 | 4 | [`04-debugging/`](04-debugging/) | Set up the VSCode **debugger**, step through Tutorial 03 code, find and fix a bug. |
 | 5 | [`05-embeddings-math/`](05-embeddings-math/) | Understand **embeddings** from first principles, build a toy word2vec, then use a real model. |
 | 6 | [`06-vector-store/`](06-vector-store/) | Store embeddings in **Postgres + pgvector**, run similarity search queries. |
+| 7 | [`07-local-llm/`](07-local-llm/) | Understand **LLM architecture**, run models locally with Ollama. |
+| 8 | [`08-basic-rag/`](08-basic-rag/) | Wire vector search to an LLM — **retrieve → prompt → generate** with citations. |
+| 9 | [`09-evaluation/`](09-evaluation/) | Build a gold-standard eval set, measure **Precision@k, Recall@k, MRR**. |
+| 10 | [`10-hybrid-search/`](10-hybrid-search/) | Combine **vector + BM25 keyword search** via Reciprocal Rank Fusion. |
+| 11 | [`11-reranking/`](11-reranking/) | Add a **cross-encoder reranker** for two-stage precision retrieval. |
 
 ## The pipeline
 
-Tutorials 03–06 form a complete RAG preparation pipeline:
+Tutorials 03–11 form a complete RAG pipeline:
 
 ```
-PDF files → Markdown → Chunks → Embeddings → Postgres (vector store)
-   T03         T03       T03       T05             T06
+PDF files → Markdown → Chunks → Embeddings → Postgres → Local LLM → RAG → Evaluation
+   T03         T03       T03       T05          T06        T07       T08      T09
+
+Postgres → Hybrid Search (vector + BM25) → Reranking → LLM
+   T06            T10                          T11       T08
 ```
 
 Tutorial 04 (debugging) is standalone but uses Tutorial 03's code as its target.
+
+### Test Documents
+
+The RAG tutorials (08-11) work best with the PDFs generated in Tutorial 03.
+In particular, `generate_textbook.py` produces a 45-page research textbook
+that exercises every edge case in the pipeline:
+- Long chapters that span multiple chunks (tests context preservation)
+- Mathematical formulas (tests chunk boundary handling)
+- Cross-chapter references (tests multi-hop retrieval)
+- Academic citation style (tests source attribution)
+
+Generate the test PDFs first: `uv run python tutorials/03-chunking-strategies/run_all.py`
 
 Do them in order: Tutorial 2 reads the PDF that Tutorial 1 builds. Then there's a
 **stretch** exercise in [`sample_pdfs/`](sample_pdfs/): build two 10+ page
