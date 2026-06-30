@@ -1,0 +1,162 @@
+[
+  {
+    "id": "q01",
+    "question": "What are the permitted uses in the R-1 residential zone?",
+    "pdf_name": "zoning_ordinance",
+    "expected_keywords": ["R-1", "residential", "permitted", "single-family"],
+    "gold_chunk_indices": [5, 6, 7],
+    "difficulty": "easy"
+  },
+  {
+    "id": "q02",
+    "question": "What is the maximum building height for commercial zones?",
+    "pdf_name": "zoning_ordinance",
+    "expected_keywords": ["height", "commercial", "feet", "stories"],
+    "gold_chunk_indices": [15, 16],
+    "difficulty": "medium"
+  },
+  {
+    "id": "q03",
+    "question": "Which land uses require a conditional use permit in the C-2 district?",
+    "pdf_name": "permit_use_matrix",
+    "expected_keywords": ["conditional", "C-2", "permit"],
+    "gold_chunk_indices": [10, 11, 12],
+    "difficulty": "medium"
+  },
+  {
+    "id": "q04",
+    "question": "What is the scaled dot-product attention formula?",
+    "pdf_name": "research_textbook",
+    "expected_keywords": ["attention", "softmax", "Q", "K", "V", "sqrt"],
+    "gold_chunk_indices": [30, 31],
+    "difficulty": "easy"
+  },
+  {
+    "id": "q05",
+    "question": "How does Word2Vec's skip-gram model differ from CBOW?",
+    "pdf_name": "research_textbook",
+    "expected_keywords": ["skip-gram", "CBOW", "predict", "context", "target"],
+    "gold_chunk_indices": [12, 13, 14],
+    "difficulty": "medium"
+  },
+  {
+    "id": "q06",
+    "question": "What are the steps for deploying a new service version?",
+    "pdf_name": "technical_manual",
+    "expected_keywords": ["deploy", "version", "rollback", "steps"],
+    "gold_chunk_indices": [8, 9, 10],
+    "difficulty": "easy"
+  },
+  {
+    "id": "q07",
+    "question": "What was the year-over-year revenue growth?",
+    "pdf_name": "financial_report",
+    "expected_keywords": ["revenue", "growth", "year", "percent", "increase"],
+    "gold_chunk_indices": [3, 4],
+    "difficulty": "medium"
+  },
+  {
+    "id": "q08",
+    "question": "Explain the RLHF training pipeline for large language models.",
+    "pdf_name": "research_textbook",
+    "expected_keywords": ["RLHF", "reward model", "PPO", "human feedback", "SFT"],
+    "gold_chunk_indices": [45, 46, 47],
+    "difficulty": "hard"
+  },
+  {
+    "id": "q09",
+    "question": "What are the setback requirements for properties adjacent to public roads?",
+    "pdf_name": "zoning_ordinance",
+    "expected_keywords": ["setback", "road", "feet", "front", "property line"],
+    "gold_chunk_indices": [20, 21],
+    "difficulty": "medium"
+  },
+  {
+    "id": "q10",
+    "question": "What is the GloVe objective function and how does it differ from Word2Vec?",
+    "pdf_name": "research_textbook",
+    "expected_keywords": ["GloVe", "co-occurrence", "log", "objective", "global"],
+    "gold_chunk_indices": [18, 19, 20],
+    "difficulty": "hard"
+  },
+  {
+    "id": "q11",
+    "question": "List all zone districts where multi-family housing is permitted by right.",
+    "pdf_name": "permit_use_matrix",
+    "expected_keywords": ["multi-family", "permitted", "P", "zone"],
+    "gold_chunk_indices": [5, 6],
+    "difficulty": "medium"
+  },
+  {
+    "id": "q12",
+    "question": "What monitoring tools are recommended for production deployments?",
+    "pdf_name": "technical_manual",
+    "expected_keywords": ["monitoring", "production", "alerts", "metrics"],
+    "gold_chunk_indices": [25, 26],
+    "difficulty": "easy"
+  },
+  {
+    "id": "q13",
+    "question": "What were the total operating expenses in Q4?",
+    "pdf_name": "financial_report",
+    "expected_keywords": ["operating", "expenses", "Q4", "total"],
+    "gold_chunk_indices": [15, 16],
+    "difficulty": "medium"
+  },
+  {
+    "id": "q14",
+    "question": "How does positional encoding work in the Transformer architecture?",
+    "pdf_name": "research_textbook",
+    "expected_keywords": ["positional", "sinusoidal", "encoding", "position", "dimension"],
+    "gold_chunk_indices": [33, 34],
+    "difficulty": "medium"
+  },
+  {
+    "id": "q15",
+    "question": "What is the definition of 'accessory structure' in the zoning code?",
+    "pdf_name": "zoning_ordinance",
+    "expected_keywords": ["accessory", "structure", "definition", "subordinate"],
+    "gold_chunk_indices": [35, 36],
+    "difficulty": "easy"
+  },
+  {
+    "id": "q16",
+    "question": "Compare the net income between Q2 and Q3.",
+    "pdf_name": "financial_report",
+    "expected_keywords": ["net income", "Q2", "Q3", "increase", "decrease"],
+    "gold_chunk_indices": [20, 21, 22],
+    "difficulty": "hard"
+  },
+  {
+    "id": "q17",
+    "question": "What emergency procedures should be followed during a service outage?",
+    "pdf_name": "technical_manual",
+    "expected_keywords": ["emergency", "outage", "incident", "procedure", "restore"],
+    "gold_chunk_indices": [30, 31, 32],
+    "difficulty": "medium"
+  },
+  {
+    "id": "q18",
+    "question": "Explain how BERT's masked language modeling pre-training works.",
+    "pdf_name": "research_textbook",
+    "expected_keywords": ["BERT", "masked", "MLM", "15%", "bidirectional"],
+    "gold_chunk_indices": [38, 39],
+    "difficulty": "medium"
+  },
+  {
+    "id": "q19",
+    "question": "What parking requirements apply to retail uses in commercial zones?",
+    "pdf_name": "zoning_ordinance",
+    "expected_keywords": ["parking", "retail", "commercial", "spaces", "square feet"],
+    "gold_chunk_indices": [28, 29],
+    "difficulty": "medium"
+  },
+  {
+    "id": "q20",
+    "question": "What are the scaling laws for neural language models?",
+    "pdf_name": "research_textbook",
+    "expected_keywords": ["scaling", "power law", "parameters", "compute", "Kaplan"],
+    "gold_chunk_indices": [48, 49, 50],
+    "difficulty": "hard"
+  }
+]
