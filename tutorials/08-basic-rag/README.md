@@ -379,6 +379,36 @@ Streaming significantly improves perceived performance for the user.
 
 ---
 
+## Thinking About Edge Cases
+
+Before implementing, consider these scenarios your code must handle robustly:
+
+**Token Budget Boundaries:**
+- What if a single chunk exceeds the entire token budget? Truncate? Skip?
+- What if the budget is exactly 0? Return empty string gracefully.
+- 4 chars ≈ 1 token is an approximation. Unicode characters (Chinese, Arabic)
+  take more bytes but the same "slot." How does this affect your budget math?
+
+**Malformed Input:**
+- Chunks with empty `chunk_text` — should they still get a `[Source N]` header?
+- What if `similarity` is negative or NaN?
+- What if `pdf_name` or `chunk_strategy` is None?
+
+**LLM Client Resilience:**
+- Network timeout to local Ollama — should you retry?
+- What if the model returns an empty response?
+- Streaming mode: what if the connection drops mid-stream?
+
+**Prompt Engineering Pitfalls:**
+- What if the context contains text that looks like `[Source 3]` already?
+  (The LLM might get confused about citation numbering.)
+- What if the user's question contains prompt injection like "Ignore all
+  previous instructions"?
+
+The tests cover many of these. Use them as your specification.
+
+---
+
 ## What's Next
 
 In **Tutorial 09**, we'll measure how good this retrieval actually is.

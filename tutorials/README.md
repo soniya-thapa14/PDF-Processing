@@ -33,6 +33,18 @@ Postgres → Hybrid Search (vector + BM25) → Reranking → LLM
 
 Tutorial 04 (debugging) is standalone but uses Tutorial 03's code as its target.
 
+### Test Documents
+
+The RAG tutorials (08-11) work best with the PDFs generated in Tutorial 03.
+In particular, `generate_textbook.py` produces a 45-page research textbook
+that exercises every edge case in the pipeline:
+- Long chapters that span multiple chunks (tests context preservation)
+- Mathematical formulas (tests chunk boundary handling)
+- Cross-chapter references (tests multi-hop retrieval)
+- Academic citation style (tests source attribution)
+
+Generate the test PDFs first: `uv run python tutorials/03-chunking-strategies/run_all.py`
+
 Do them in order: Tutorial 2 reads the PDF that Tutorial 1 builds. Then there's a
 **stretch** exercise in [`sample_pdfs/`](sample_pdfs/): build two 10+ page
 documents and run your code on them to see what breaks across page boundaries.

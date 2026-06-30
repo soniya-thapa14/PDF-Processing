@@ -3,7 +3,12 @@
 Run: uv run pytest tutorials/10-hybrid-search/ -v
 
 These tests verify your implementation of reciprocal_rank_fusion.
-Edge cases included to teach you about score accumulation and merging.
+
+Edge cases to think about:
+- What happens with very long ranked lists?
+- What if the same document appears at different ranks in different lists?
+- What about numerical precision in score accumulation?
+- What if all items have the same score?
 """
 
 import sys
@@ -80,3 +85,55 @@ def test_rrf_three_lists():
     result = reciprocal_rank_fusion([list1, list2, list3])
     expected = 3.0 / (RRF_K + 1)
     assert abs(result[0]["rrf_score"] - expected) < 1e-9
+
+
+# ---------------------------------------------------------------------------
+# Additional edge cases: boundary conditions for robust implementation
+# ---------------------------------------------------------------------------
+
+def test_rrf_item_at_different_ranks():
+    """A doc at rank 1 in list1 and rank 5 in list2 accumulates both scores."""
+    list1 = [
+        {"pdf_name": "a", "chunk_index": 1, "chunk_text": "top in list1"},
+        {"pdf_name": "a", "chunk_index": 2, "chunk_text": "second"},
+    ]
+    list2 = [
+        {"pdf_name": "a", "chunk_index": 3, "chunk_text": "x"},
+        {"pdf_name": "a", "chunk_index": 4, "chunk_text": "x"},
+        {"pdf_name": "a", "chunk_index": 5, "chunk_text": "x"},
+        {"pdf_name": "a", "chunk_index": 6, "chunk_text": "x"},
+        {"pdf_name": "a", "chunk_index": 1, "chunk_text": "top in list1 again at rank 5"},
+    ]
+    result = reciprocal_rank_fusion([list1, list2])
+    chunk1 = next(r for r in result if r["chunk_index"] == 1)
+    expected = 1.0 / (RRF_K + 1) + 1.0 / (RRF_K + 5)
+    assert abs(chunk1["rrf_score"] - expected) < 1e-9
+
+
+def test_rrf_large_list_scores_decrease():
+    """Items at later ranks get progressively smaller scores."""
+    items = [
+        {"pdf_name": "a", "chunk_index": i, "chunk_text": f"chunk {i}"}
+        for i in range(20)
+    ]
+    result = reciprocal_rank_fusion([items])
+    for i in range(len(result) - 1):
+        assert result[i]["rrf_score"] >= result[i + 1]["rrf_score"]
+
+
+def test_rrf_preserves_chunk_text():
+    """Original chunk metadata should be preserved in output."""
+    items = [{"pdf_name": "report.pdf", "chunk_index": 7, "chunk_text": "Important finding"}]
+    result = reciprocal_rank_fusion([items])
+    assert result[0]["pdf_name"] == "report.pdf"
+    assert result[0]["chunk_text"] == "Important finding"
+    assert result[0]["chunk_index"] == 7
+
+
+def test_rrf_different_pdfs_same_chunk_index():
+    """(pdf_name, chunk_index) is the identity — same index in different PDFs are distinct."""
+    list1 = [{"pdf_name": "a.pdf", "chunk_index": 1, "chunk_text": "from a"}]
+    list2 = [{"pdf_name": "b.pdf", "chunk_index": 1, "chunk_text": "from b"}]
+    result = reciprocal_rank_fusion([list1, list2])
+    assert len(result) == 2  # They are distinct documents
+    assert result[0]["rrf_score"] == result[1]["rrf_score"]

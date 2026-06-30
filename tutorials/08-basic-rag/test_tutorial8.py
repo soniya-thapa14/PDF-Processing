@@ -4,6 +4,12 @@ Run: uv run pytest tutorials/08-basic-rag/ -v
 
 These tests verify your implementations of prompts.py, llm_client.py, and
 rag_pipeline.py. Make the tests pass by implementing the # TODO functions.
+
+Edge cases to consider:
+- What happens when token budget is exactly the size of one chunk?
+- What if chunk_text contains special characters or is very long?
+- What if similarity scores are identical?
+- What if context is empty but question is valid?
 """
 
 import sys
@@ -135,3 +141,84 @@ def test_generate_calls_api_with_model(mock_get_client):
     result = llm_client.generate([{"role": "user", "content": "hi"}], model="test-model")
     assert result == "Test answer"
     mock_client.chat.completions.create.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Edge-case tests: boundary conditions students should think about
+# ---------------------------------------------------------------------------
+
+def test_format_context_single_chunk_exact_budget():
+    """When chunk exactly fills the budget, it should still appear."""
+    text = "X" * 400  # 400 chars = 100 tokens
+    chunks = [
+        {"chunk_text": text, "pdf_name": "fit.pdf",
+         "chunk_strategy": "fixed_char", "similarity": 0.9},
+    ]
+    result = format_context(chunks, max_tokens=200)
+    assert text in result
+
+
+def test_format_context_unicode_text():
+    """Chunks with Unicode (accents, CJK, emoji) must not crash."""
+    chunks = [
+        {"chunk_text": "Ñoño café résumé 日本語 🎯", "pdf_name": "intl.pdf",
+         "chunk_strategy": "semantic", "similarity": 0.85},
+    ]
+    result = format_context(chunks, max_tokens=500)
+    assert "café" in result
+    assert "日本語" in result
+
+
+def test_format_context_very_large_single_chunk_truncated():
+    """A single chunk larger than the entire budget should be truncated with '...'."""
+    huge_text = "word " * 5000  # ~25000 chars >> any reasonable budget
+    chunks = [
+        {"chunk_text": huge_text, "pdf_name": "huge.pdf",
+         "chunk_strategy": "fixed_char", "similarity": 0.99},
+    ]
+    result = format_context(chunks, max_tokens=100)  # 400 char budget
+    assert len(result) <= 500  # some overhead for headers is fine
+    assert "..." in result
+
+
+def test_format_context_duplicate_chunks_all_appear():
+    """If duplicate chunks are retrieved, they should all appear (retriever's job to deduplicate)."""
+    chunks = [
+        {"chunk_text": "Same text", "pdf_name": "a.pdf",
+         "chunk_strategy": "fixed_char", "similarity": 0.9},
+        {"chunk_text": "Same text", "pdf_name": "a.pdf",
+         "chunk_strategy": "fixed_char", "similarity": 0.88},
+    ]
+    result = format_context(chunks, max_tokens=1000)
+    assert "[Source 1]" in result
+    assert "[Source 2]" in result
+
+
+def test_build_messages_long_context_preserved():
+    """Even very long context strings should not be silently truncated in messages."""
+    long_ctx = "context chunk " * 500
+    messages = build_messages("What is X?", long_ctx)
+    assert long_ctx in messages[1]["content"]
+
+
+@patch("llm_client.get_client")
+def test_generate_passes_temperature_through(mock_get_client):
+    """Extra kwargs like temperature should be forwarded to the API."""
+    import llm_client
+
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_response.choices = [MagicMock()]
+    mock_response.choices[0].message.content = "answer"
+    mock_client.chat.completions.create.return_value = mock_response
+    mock_get_client.return_value = mock_client
+
+    llm_client.generate(
+        [{"role": "user", "content": "hi"}],
+        model="m",
+        temperature=0.0,
+        max_tokens=100,
+    )
+    call_kwargs = mock_client.chat.completions.create.call_args[1]
+    assert call_kwargs["temperature"] == 0.0
+    assert call_kwargs["max_tokens"] == 100

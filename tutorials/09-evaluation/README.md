@@ -353,6 +353,39 @@ Anthropic's guide emphasizes:
 
 ---
 
+## Thinking About Edge Cases
+
+These are the boundary conditions your metric implementations must handle:
+
+**Precision@k:**
+- `k = 0` → division by zero. Should return 0.0.
+- Retrieved list shorter than k → denominator is still k (penalizes incomplete retrieval).
+- All items retrieved are relevant → precision = 1.0 regardless of recall.
+
+**Recall@k:**
+- Gold set is empty (no relevant documents exist) → recall is undefined. Return 0.0.
+- Retrieved list has duplicates (same chunk twice) → only count unique matches.
+- All gold items retrieved → recall = 1.0 even if we also retrieved junk.
+
+**MRR:**
+- First item is relevant → RR = 1.0 (best case, early stopping).
+- No relevant items in entire list → RR = 0.0.
+- Multiple relevant items → only the FIRST one's rank matters.
+
+**NDCG@k:**
+- Ideal DCG is 0 (no relevant items possible at any rank) → return 0.0.
+- Perfect ranking → NDCG = 1.0 exactly (verify with math.log2).
+- Single relevant item at rank k → small positive score.
+
+**LLM-as-Judge:**
+- The judge model might be too generous (always scores 5/5).
+- Judge and generator use the SAME model → potential bias.
+- Non-deterministic: same input may get different scores on different runs.
+- Faithfulness vs. correctness can conflict: an answer can be faithfully
+  grounded in wrong context (high faithfulness, low correctness).
+
+---
+
 ## What's Next
 
 In **Tutorial 10**, we'll address a fundamental weakness of pure vector search:

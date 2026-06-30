@@ -378,6 +378,38 @@ and custom text search configurations. Key concepts:
 
 ---
 
+## Thinking About Edge Cases
+
+**RRF Identity and Deduplication:**
+- Documents are identified by `(pdf_name, chunk_index)`. What if the same
+  chunk text appears in different PDFs? They should be treated as distinct.
+- What if vector search and keyword search return the same chunk but with
+  slightly different text (e.g., one has trailing whitespace)? Your identity
+  key must be robust — use the index, not the text.
+
+**Score Semantics:**
+- RRF scores are NOT probabilities. They're typically in range [0.001, 0.03].
+  Don't normalize them to [0, 1] — you'll lose relative ordering information.
+- With k=60: rank 1 → score = 1/61 ≈ 0.016. A chunk in both lists at rank 1
+  scores 2/61 ≈ 0.033. This is the maximum possible for 2 lists.
+
+**Empty and Degenerate Cases:**
+- What if vector search returns results but keyword returns nothing (query
+  has no good keyword matches)? RRF should gracefully use just one list.
+- What if both return empty? Return empty list, don't crash.
+- What about very long queries? Keyword search may over-match; vector search
+  may dilute the embedding signal.
+
+**BM25 / Postgres FTS Specifics:**
+- Stop words ("the", "is", "a") are removed by `to_tsvector`. A query of
+  only stop words returns zero results — this is correct behavior.
+- Stemming: "running" matches "run". This is usually good but can cause
+  false positives (e.g., "running" the program vs "running" a race).
+- The GIN index makes FTS fast but adds write overhead. For read-heavy RAG
+  workloads, this is the right tradeoff.
+
+---
+
 ## What's Next
 
 In **Tutorial 11**, we address the final quality bottleneck: even with hybrid

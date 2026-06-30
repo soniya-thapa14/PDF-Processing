@@ -4,6 +4,12 @@ Run: uv run pytest tutorials/11-reranking/ -v
 
 These tests mock the cross-encoder model so they run without downloading it.
 They verify your rerank() logic: sorting, top_k, and threshold filtering.
+
+Edge cases to think about:
+- What if all chunks score identically?
+- What if threshold filters out everything?
+- What about negative cross-encoder scores (valid for ms-marco models)?
+- Numerical stability with very close scores?
 """
 
 import sys
@@ -122,3 +128,85 @@ def test_rerank_single_chunk():
         result = rerank("test", chunks, top_k=5)
         assert len(result) == 1
         assert result[0]["rerank_score"] == 0.6
+
+
+# ---------------------------------------------------------------------------
+# Additional edge cases: robust reranking under real-world conditions
+# ---------------------------------------------------------------------------
+
+def test_rerank_negative_scores():
+    """ms-marco cross-encoders can output negative scores (not relevant). Must still sort correctly."""
+    from reranker import rerank
+
+    chunks = [
+        {"chunk_text": "somewhat relevant", "pdf_name": "a", "chunk_index": 0},
+        {"chunk_text": "not relevant at all", "pdf_name": "a", "chunk_index": 1},
+        {"chunk_text": "very irrelevant", "pdf_name": "a", "chunk_index": 2},
+    ]
+
+    with patch("reranker.get_model") as mock_model:
+        mock_ce = MagicMock()
+        mock_ce.predict.return_value = np.array([-0.5, -3.0, -7.0])
+        mock_model.return_value = mock_ce
+
+        result = rerank("test", chunks, top_k=3)
+        assert result[0]["chunk_index"] == 0
+        assert result[0]["rerank_score"] == -0.5
+        assert result[2]["rerank_score"] == -7.0
+
+
+def test_rerank_threshold_filters_all():
+    """If threshold is very high, result can be empty."""
+    from reranker import rerank
+
+    chunks = [
+        {"chunk_text": "low", "pdf_name": "a", "chunk_index": 0},
+        {"chunk_text": "also low", "pdf_name": "a", "chunk_index": 1},
+    ]
+
+    with patch("reranker.get_model") as mock_model:
+        mock_ce = MagicMock()
+        mock_ce.predict.return_value = np.array([0.2, 0.1])
+        mock_model.return_value = mock_ce
+
+        result = rerank("test", chunks, top_k=5, threshold=0.9)
+        assert result == []
+
+
+def test_rerank_preserves_original_metadata():
+    """Reranking should preserve all original chunk keys (not just chunk_text)."""
+    from reranker import rerank
+
+    chunks = [
+        {"chunk_text": "data", "pdf_name": "report.pdf", "chunk_index": 42,
+         "chunk_strategy": "semantic", "similarity": 0.8},
+    ]
+
+    with patch("reranker.get_model") as mock_model:
+        mock_ce = MagicMock()
+        mock_ce.predict.return_value = np.array([0.9])
+        mock_model.return_value = mock_ce
+
+        result = rerank("test", chunks, top_k=5)
+        assert result[0]["pdf_name"] == "report.pdf"
+        assert result[0]["chunk_index"] == 42
+        assert result[0]["chunk_strategy"] == "semantic"
+
+
+def test_rerank_identical_scores_stable():
+    """When multiple chunks score identically, all should be returned (order may vary)."""
+    from reranker import rerank
+
+    chunks = [
+        {"chunk_text": f"chunk {i}", "pdf_name": "a", "chunk_index": i}
+        for i in range(5)
+    ]
+
+    with patch("reranker.get_model") as mock_model:
+        mock_ce = MagicMock()
+        mock_ce.predict.return_value = np.array([0.5, 0.5, 0.5, 0.5, 0.5])
+        mock_model.return_value = mock_ce
+
+        result = rerank("test", chunks, top_k=5)
+        assert len(result) == 5
+        assert all(r["rerank_score"] == 0.5 for r in result)

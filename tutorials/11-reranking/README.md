@@ -377,6 +377,39 @@ practical even without a GPU (~200ms total).
 
 ---
 
+## Thinking About Edge Cases
+
+**Cross-Encoder Score Range:**
+- ms-marco models output raw logits, NOT probabilities. Scores can be negative.
+  A score of -5.0 means "very irrelevant", not an error.
+- Don't use sigmoid or softmax on scores unless you understand the tradeoff
+  (it compresses the range and can hide quality differences).
+
+**Threshold Selection:**
+- A fixed threshold (e.g., 0.5) may filter out everything for some queries
+  and nothing for others. Consider adaptive thresholds (e.g., top score * 0.5).
+- If threshold filters out ALL candidates, the pipeline must still respond
+  gracefully (e.g., "I don't have relevant information").
+
+**Model Loading:**
+- First call downloads ~90MB model. If the download fails mid-way, the cache
+  is corrupted. Your `get_model()` should handle this (retry or clear cache).
+- The model is loaded into RAM (~400MB). On memory-constrained systems,
+  loading the model while also holding embeddings can cause OOM.
+
+**Batch Size and Latency:**
+- `model.predict(pairs)` processes all pairs at once. With 100 candidates,
+  this takes ~400ms on CPU. With 1000 candidates, it's ~4 seconds.
+- If your initial retrieval returns 0 candidates, `predict([])` may crash
+  depending on the library version. Always check for empty input first.
+
+**Tie Breaking:**
+- When two chunks score identically, their relative order is undefined.
+  Your tests should NOT depend on a specific tie-breaking order.
+- In practice, ties are extremely rare with float32 scores.
+
+---
+
 ## Congratulations!
 
 You've built a complete, production-grade RAG pipeline:
