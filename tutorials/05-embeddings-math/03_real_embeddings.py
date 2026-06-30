@@ -23,7 +23,7 @@ def load_model():
     return SentenceTransformer("all-MiniLM-L6-v2")
 
 def embed_chunks(model, chunks: list[str]) -> np.ndarray:
-    texts = [chunk["content"] for chunk in chunks]
+    texts = [c["content"] if isinstance(c, dict) else c for c in chunks]
     embeddings = model.encode(texts, show_progress_bar=True)
     return np.array(embeddings)
 
@@ -57,7 +57,7 @@ def demo_similarity(model, chunks: list[str], embeddings: np.ndarray):
 
 
 def search(model, embeddings: np.ndarray, chunks: list[str], query: str, top_k: int = 5):
-    texts = [chunk["content"] for chunk in chunks]
+    texts = [c["content"] if isinstance(c, dict) else c for c in chunks]
     query_vec = model.encode(query, normalize_embeddings=True)
     sim = embeddings @ query_vec
     top_indices = np.argsort(sim)[::-1][:top_k]

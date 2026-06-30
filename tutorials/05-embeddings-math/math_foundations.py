@@ -5,7 +5,7 @@ Implement vector operations from scratch with numpy, then demonstrate
 why cosine similarity is the right metric for comparing text embeddings.
 
 Usage:
-    uv run python tutorials/05-embeddings-math/_01_math_foundations.py
+    uv run python tutorials/05-embeddings-math/math_foundations.py
 """
 
 import numpy as np

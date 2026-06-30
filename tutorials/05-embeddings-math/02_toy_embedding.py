@@ -120,6 +120,7 @@ def train_skipgram(
     w_embed, w_context = initialize_model(vocab_size, embedding_dim)
     losses = []
     for epoch in range(epochs):
+        losses = []
         for center, context in pairs:
             hidden = w_embed[center]
             scores = w_context.T @ hidden

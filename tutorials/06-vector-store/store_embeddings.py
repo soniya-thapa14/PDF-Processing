@@ -61,7 +61,7 @@ def insert_embeddings():
         print(f"\nInserted chunks successfully")
     finally:
         conn.close()
-            
+           
 def get_stats():
     try:
         conn = get_connection()
@@ -104,3 +104,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
